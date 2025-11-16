@@ -167,25 +167,32 @@ updateLineNumbers();
 function updateEditorWithJointsData(jointsData) {
     if (jointsData.length > 0) {
         const formattedData = jointsData.map((frame, index) => {
-            const angles = [
-                frame.angles.J1 || 0,
-                frame.angles.J2 || 0,
-                frame.angles.J3 || 0,
-                frame.angles.J4 || 0,
-                frame.angles.J5 || 0,
-                frame.angles.J6 || 0
-            ];
-            
-            const comment = `; <Pose ${index}>\n`;
-            const point = `E6AXIS P${index}={A1 ${angles[0]},A2 ${angles[1]},A3 ${angles[2]},A4 ${angles[3]},A5 ${angles[4]},A6 ${angles[5]}}\n`;
-            let run = ``;
-            if (index > 0) {
-                let duration = Math.round((jointsData[index].time - jointsData[index-1].time) * 1000);
-                run = `PTP_TIME P${index} FINE=1 TIME=${duration} msec Acc=100% TOOL[0] BASE[0]`;
+            if (frame.group !== 'wait') {
+                const angles = [
+                    frame.angles.J1 || 0,
+                    frame.angles.J2 || 0,
+                    frame.angles.J3 || 0,
+                    frame.angles.J4 || 0,
+                    frame.angles.J5 || 0,
+                    frame.angles.J6 || 0
+                ];
+                
+                const comment = `; <Pose ${index}>\n`;
+                const point = `E6AXIS P${index}={A1 ${angles[0]},A2 ${angles[1]},A3 ${angles[2]},A4 ${angles[3]},A5 ${angles[4]},A6 ${angles[5]}}\n`;
+                let run = ``;
+                if (index > 0) {
+                    let duration = Math.round((jointsData[index].time - jointsData[index-1].time) * 1000);
+                    run = `PTP_TIME P${index} FINE=1 TIME=${duration} msec Acc=100% TOOL[0] BASE[0]`;
+                } else {
+                    run = `PTP P${index} FINE=1 Vel=10% Acc=100%`;
+                }
+                return comment + point + run + `\n`
             } else {
-                run = `PTP P${index} FINE=1 Vel=10% Acc=100%`;
+                const comment = `; <Wait ${index}>\n`;
+                const waitTime = Math.round((jointsData[index].time - jointsData[index-1].time) * 1000) / 1000;
+                const waitCmd = `WAIT SEC ${waitTime}\n`;
+                return comment + waitCmd;
             }
-            return comment + point + run + `\n`
         }).join('\n');
 
         const file_head = `;Version:310\n;[Point&S]\n;[Point&E]\n;[Program&SV2]\n`;

@@ -220,10 +220,7 @@ let currentCardIndex = -1;
 // Animation functions
 const updateArmPosition = () => {
     var currentTime;
-    if (!isWebcamActive)
-        currentTime = (Date.now() - state.startTime) / 1e3;
-    else
-        currentTime = video.currentTime;
+    currentTime = (Date.now() - state.startTime) / 1e3;
 
     console.log(currentTime);
 
@@ -274,7 +271,6 @@ const updateArmPosition = () => {
 const updateLoop = () => {
     if (elements.animToggle.classList.contains('checked')) {
         updateArmPosition();
-        // if ()
         updateSocketPackage();
     }
     requestAnimationFrame(updateLoop);
@@ -285,11 +281,9 @@ let ws = null;
 let wsON = false;
 let sendON = false;
 
-// 快速取元素
 const connectBtn = elements.socketConnectBtn;
 const sendBtn = elements.socketSendBtn;
 
-// 初始化 Send 按鈕不可按
 sendBtn.disabled = true;
 
 // === Connect Button ===
@@ -391,6 +385,7 @@ const updateSocketPackage = () => {
         );
 
         const wsPack = {
+            currentCardIndex,
             jointAngles,
             group: window.jointsData[currentCardIndex].group,
             isArmMoving,
@@ -399,6 +394,7 @@ const updateSocketPackage = () => {
         };
 
         ws.send(JSON.stringify(wsPack));
+        console.log(wsPack);
     }
 };
 
@@ -726,6 +722,41 @@ elements.copyBtn.addEventListener('click', () => {
     const newCardData = {
         time: Math.round(vidTimeProxy.value * 100) / 100,
         group: window.groupNameSelected,
+        angles: jointAngles
+    };
+
+    let inserted = false;
+    let i = 0;
+    for (; i < window.jointsData.length; i++) {
+        if (newCardData.time < window.jointsData[i].time) {
+            window.jointsData.splice(i, 0, newCardData);
+            inserted = true;
+            break;
+        }
+    }
+
+    if (!inserted) {
+        window.jointsData.push(newCardData);
+    }
+
+    addMarkerToProgressBar(newCardData.time);
+    addFrameCard(i);
+});
+
+elements.waitBtn.addEventListener('click', () => {
+    let jointAngles = Object.fromEntries(
+        Object.keys(viewer.robot.joints)
+            .slice(0, 6)
+            .map((key, index) => {
+                let angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
+                let formattedAngle = angleInDegrees.toFixed(1);
+                return [`J${index + 1}`, formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
+            })
+    );
+
+    const newCardData = {
+        time: Math.round(vidTimeProxy.value * 100) / 100,
+        group: "wait",
         angles: jointAngles
     };
 
