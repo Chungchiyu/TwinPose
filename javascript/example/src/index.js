@@ -9,6 +9,7 @@ import URDFManipulator from '../../src/urdf-manipulator-element.js';
 import URDFCollisionViewer from '../../src/urdf-collisionViewer-element.js';
 
 import Sortable, { Swap } from 'sortablejs';
+import { int } from 'three/examples/jsm/nodes/shadernode/ShaderNode.js';
 
 Sortable.mount(new Swap());
 
@@ -39,7 +40,9 @@ const elements = {
     waitBtn: document.querySelector('.waitBtn'),
     vidTime: document.getElementById('vidTime'),
     simLoading: document.getElementById('sim-loading'),
-    poseDetectToggle: document.getElementById('poseDetect')
+    poseDetectToggle: document.getElementById('poseDetect'),
+    socketConnectBtn: document.querySelector('.socketConnectBtn'),
+    socketSendBtn: document.querySelector('.socketSendBtn')
 };
 
 // Constants
@@ -74,7 +77,7 @@ elements.isLoop.addEventListener('click', () => {
 
 elements.controlsToggle.addEventListener('click', () => elements.controlsel.classList.toggle('hidden'));
 
-document.getElementById("help-icon").addEventListener("click", function() {
+document.getElementById("help-icon").addEventListener("click", function () {
     window.open("https://hackmd.io/@NickChung/TwinPose_Manual", "_blank");
 });
 
@@ -211,6 +214,9 @@ window.vidTimeProxy = new Proxy({ value: vidTime }, {
     }
 });
 
+let isArmMoving = false;
+let currentCardIndex = -1;
+
 // Animation functions
 const updateArmPosition = () => {
     var currentTime;
@@ -223,18 +229,21 @@ const updateArmPosition = () => {
 
     for (let i = 0; i < window.jointsData.length - 1; i++) {
         if (currentTime >= window.jointsData[i].time && currentTime < window.jointsData[i + 1].time) {
-            highlightCard(elements.cardContainer.childNodes[i], false);
+            highlightCard(elements.cardContainer.childNodes[i], false, i);
             const t1 = window.jointsData[i].time;
             const t2 = window.jointsData[i + 1].time;
             const a1 = window.jointsData[i].angles;
             const a2 = window.jointsData[i + 1].angles;
 
             const interpolatedAngles = {};
+            isArmMoving = false;
             for (const jointName in a1) {
                 if (a2.hasOwnProperty(jointName)) {
                     const angle1 = a1[jointName];
                     const angle2 = a2[jointName];
                     interpolatedAngles[jointName] = angle1 + (angle2 - angle1) * (currentTime - t1) / (t2 - t1);
+                    if (angle2 - angle1 != 0)
+                        isArmMoving = true;
                 }
             }
 
@@ -265,11 +274,134 @@ const updateArmPosition = () => {
 const updateLoop = () => {
     if (elements.animToggle.classList.contains('checked')) {
         updateArmPosition();
-
+        // if ()
+        updateSocketPackage();
     }
     requestAnimationFrame(updateLoop);
     // viewer.update();
 };
+
+let ws = null;
+let wsON = false;
+let sendON = false;
+
+// 快速取元素
+const connectBtn = elements.socketConnectBtn;
+const sendBtn = elements.socketSendBtn;
+
+// 初始化 Send 按鈕不可按
+sendBtn.disabled = true;
+
+// === Connect Button ===
+connectBtn.addEventListener("click", () => {
+    if (!wsON) startWS();
+    else closeWS();
+});
+
+// === Send Button ===
+sendBtn.addEventListener("click", () => {
+    if (!wsON) return; // double check
+    toggleSending();
+});
+
+function toggleSending() {
+    sendON = !sendON;
+
+    if (sendON) {
+        sendBtn.textContent = "sendOFF";
+        sendBtn.classList.add("active");
+    } else {
+        sendBtn.textContent = "SendON";
+        sendBtn.classList.remove("active");
+    }
+}
+
+// ========== WebSocket ==========
+
+function startWS() {
+    const url = document.getElementById("portNum").value;
+
+    try {
+        ws = new WebSocket(url);
+
+        ws.onopen = () => {
+            console.log("Connected to", url);
+
+            wsON = true;
+
+            // Connect button active
+            connectBtn.classList.add("active");
+            connectBtn.textContent = "Disconnect";
+
+            // Enable send button
+            sendBtn.disabled = false;
+        };
+
+        ws.onmessage = (e) => {
+            console.log("Received:", e.data);
+        };
+
+        ws.onclose = () => {
+            console.log("Disconnected");
+
+            wsON = false;
+
+            // Connect UI reset
+            connectBtn.classList.remove("active");
+            connectBtn.textContent = "Connect";
+
+            // Reset Sending state
+            sendON = false;
+            sendBtn.textContent = "Send";
+            sendBtn.classList.remove("active");
+            sendBtn.disabled = true;
+        };
+
+        ws.onerror = (err) => {
+            console.error("WebSocket Error:", err);
+        };
+
+    } catch (e) {
+        console.error("Failed to connect:", e);
+    }
+}
+
+function closeWS() {
+    if (ws && wsON) ws.close();
+}
+
+
+// ========== sendON Data Loop ==========
+
+const updateSocketPackage = () => {
+    if (!wsON || !sendON || !loadComplete) return;
+
+    if (window.jointsData.length !== 0) {
+        const jointAngles = Object.fromEntries(
+            Object.keys(viewer.robot.joints)
+                .slice(0, 6)
+                .map((key, index) => {
+                    let angle = viewer.robot.joints[key].angle * RAD2DEG;
+                    let rounded = angle.toFixed(1);
+                    return [
+                        `J${index + 1}`,
+                        rounded.endsWith(".0") ? parseInt(angle) : parseFloat(rounded)
+                    ];
+                })
+        );
+
+        const wsPack = {
+            jointAngles,
+            group: window.jointsData[currentCardIndex].group,
+            isArmMoving,
+            currentTime: video.currentTime,
+            duration: video.duration
+        };
+
+        ws.send(JSON.stringify(wsPack));
+    }
+};
+
 
 // Initialize
 document.addEventListener('WebComponentsReady', () => {
@@ -577,6 +709,7 @@ const highlightCard = (card, updateVidTime = true) => {
         // Scroll the container to bring the card into view
         card.scrollIntoView({ behavior: 'auto', block: 'nearest' });
     }
+    currentCardIndex = index;
 };
 
 elements.copyBtn.addEventListener('click', () => {
@@ -654,6 +787,7 @@ elements.refreshAllBtn.addEventListener('click', () => {
         , 0);
 });
 
+let loadComplete = false;
 // Initialize Sortable with swap option
 document.addEventListener('DOMContentLoaded', () => {
     new Sortable(elements.cardContainer, {
@@ -672,6 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // console.log(window.jointsData);
         }
     });
+    loadComplete = true;
 });
 
 elements.clearBtn.addEventListener('click', () => {
