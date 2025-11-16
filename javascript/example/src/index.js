@@ -346,7 +346,7 @@ function startWS() {
 
             // Reset Sending state
             sendON = false;
-            sendBtn.textContent = "Send";
+            sendBtn.textContent = "SendON";
             sendBtn.classList.remove("active");
             sendBtn.disabled = true;
         };
@@ -385,7 +385,7 @@ const updateSocketPackage = () => {
         );
 
         const wsPack = {
-            currentCardIndex,
+            currentCardIndex: currentCardIndex + 1,
             jointAngles,
             group: window.jointsData[currentCardIndex].group,
             isArmMoving,
