@@ -394,7 +394,11 @@ const updateSocketPackage = () => {
         };
 
         ws.send(JSON.stringify(wsPack));
-        console.log(wsPack);
+        // console.log(wsPack);
+
+        if (video.paused) {
+            ws.send(false);
+        }
     }
 };
 
