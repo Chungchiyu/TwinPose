@@ -1,6 +1,6 @@
 # TwinPose 說明
 
-[Go to TwinPose Page](https://twinpose.space/javascript/example/bundle/index.html)
+[Go to TwinPose Page](https://twinpose.site/javascript/example/bundle/index.html)
 
 ## Table of Contents
 [TOC]
