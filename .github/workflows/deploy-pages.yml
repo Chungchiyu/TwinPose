@@ -30,6 +30,9 @@ jobs:
         run: npm run build-examples
         working-directory: javascript
 
+      - name: Copy URDF assets
+        run: cp -r urdf javascript/example/bundle/urdf
+
       - name: Add CNAME and disable Jekyll
         run: |
           echo "twinpose.site" > javascript/example/bundle/CNAME

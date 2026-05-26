@@ -451,7 +451,7 @@ document.addEventListener('WebComponentsReady', () => {
     document.querySelector('li[urdf]').dispatchEvent(new Event('click'));
 
     if (/javascript\/example\/bundle/i.test(window.location)) {
-        viewer.package = '../../../urdf';
+        viewer.package = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '../../../urdf' : 'urdf';
     }
 
     elements.animToggle.addEventListener('click', () => {
