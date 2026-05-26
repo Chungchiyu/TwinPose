@@ -33,6 +33,9 @@ jobs:
       - name: Copy URDF assets
         run: cp -r urdf javascript/example/bundle/urdf
 
+      - name: Copy favicon
+        run: cp favicon.ico javascript/example/bundle/favicon.ico
+
       - name: Add CNAME and disable Jekyll
         run: |
           echo "twinpose.site" > javascript/example/bundle/CNAME
