@@ -30,8 +30,10 @@ jobs:
         run: npm run build-examples
         working-directory: javascript
 
-      - name: Disable Jekyll
-        run: echo "" > javascript/example/bundle/.nojekyll
+      - name: Add CNAME and disable Jekyll
+        run: |
+          echo "twinpose.site" > javascript/example/bundle/CNAME
+          echo "" > javascript/example/bundle/.nojekyll
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
