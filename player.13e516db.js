@@ -152,6 +152,30 @@ var handle = document.querySelector('.divider');
 var poseDetectToggle = document.getElementById('poseDetect');
 window.linkRobot = document.getElementById('link-robot');
 var DEG2RAD = Math.PI / 180;
+var getActuatedJointNames = function getActuatedJointNames() {
+  var _window$viewer;
+  var robot = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : (_window$viewer = window.viewer) === null || _window$viewer === void 0 ? void 0 : _window$viewer.robot;
+  if (!(robot !== null && robot !== void 0 && robot.joints)) return [];
+  return Object.values(robot.joints).filter(function (joint) {
+    return (joint === null || joint === void 0 ? void 0 : joint.isURDFJoint) && joint.jointType !== 'fixed';
+  }).sort(function (a, b) {
+    var da = a.name.split(/[^\d]+/g).filter(function (v) {
+      return !!v;
+    }).pop();
+    var db = b.name.split(/[^\d]+/g).filter(function (v) {
+      return !!v;
+    }).pop();
+    if (da !== undefined && db !== undefined) {
+      var delta = parseFloat(da) - parseFloat(db);
+      if (delta !== 0) return delta;
+    }
+    if (a.name > b.name) return 1;
+    if (b.name > a.name) return -1;
+    return 0;
+  }).map(function (joint) {
+    return joint.name;
+  });
+};
 var poseNetLoaded = false;
 var lastPoses = [];
 var lastPoseAngles;
@@ -359,7 +383,7 @@ function drawPoses(poses) {
     window.lastPoseAnglesGlobal = lastPoseAngles;
     displayAngles(ctx, angles);
     if (linkRobot.classList.contains('checked')) {
-      Object.keys(window.viewer.robot.joints).slice(0, 6).map(function (jointName, index) {
+      getActuatedJointNames(window.viewer.robot).slice(0, 6).map(function (jointName, index) {
         if (!window.lockJoints[index].classList.contains('locked')) window.viewer.setJointValue(jointName, Object.entries(remapAngles)[index][1] * DEG2RAD);
       });
     }
