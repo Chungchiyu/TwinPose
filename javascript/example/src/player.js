@@ -17,6 +17,27 @@ const poseDetectToggle = document.getElementById('poseDetect');
 window.linkRobot = document.getElementById('link-robot');
 const DEG2RAD = Math.PI / 180;
 
+const getActuatedJointNames = (robot = window.viewer?.robot) => {
+  if (!robot?.joints) return [];
+
+  return Object.values(robot.joints)
+    .filter(joint => joint?.isURDFJoint && joint.jointType !== 'fixed')
+    .sort((a, b) => {
+      const da = a.name.split(/[^\d]+/g).filter(v => !!v).pop();
+      const db = b.name.split(/[^\d]+/g).filter(v => !!v).pop();
+
+      if (da !== undefined && db !== undefined) {
+        const delta = parseFloat(da) - parseFloat(db);
+        if (delta !== 0) return delta;
+      }
+
+      if (a.name > b.name) return 1;
+      if (b.name > a.name) return -1;
+      return 0;
+    })
+    .map(joint => joint.name);
+};
+
 let poseNetLoaded = false;
 let lastPoses = [];
 let lastPoseAngles;
@@ -193,7 +214,7 @@ function drawPoses(poses) {
     displayAngles(ctx, angles);
 
     if (linkRobot.classList.contains('checked')) {
-      Object.keys(window.viewer.robot.joints).slice(0, 6).map((jointName, index) => {
+      getActuatedJointNames(window.viewer.robot).slice(0, 6).map((jointName, index) => {
         if (!window.lockJoints[index].classList.contains('locked'))
           window.viewer.setJointValue(jointName, Object.entries(remapAngles)[index][1] * DEG2RAD);
       });

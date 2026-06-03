@@ -49,6 +49,40 @@ const elements = {
 const DEG2RAD = Math.PI / 180;
 const RAD2DEG = 1 / DEG2RAD;
 
+const getActuatedJointNames = (robot = viewer.robot) => {
+    if (!robot?.joints) return [];
+
+    return Object.values(robot.joints)
+        .filter(joint => joint?.isURDFJoint && joint.jointType !== 'fixed')
+        .sort((a, b) => {
+            const da = a.name.split(/[^\d]+/g).filter(v => !!v).pop();
+            const db = b.name.split(/[^\d]+/g).filter(v => !!v).pop();
+
+            if (da !== undefined && db !== undefined) {
+                const delta = parseFloat(da) - parseFloat(db);
+                if (delta !== 0) return delta;
+            }
+
+            if (a.name > b.name) return 1;
+            if (b.name > a.name) return -1;
+            return 0;
+        })
+        .map(joint => joint.name);
+};
+
+const getJointAngleMap = (robot = viewer.robot) => Object.fromEntries(
+    getActuatedJointNames(robot)
+        .slice(0, 6)
+        .map((jointName, index) => {
+            const angleInDegrees = robot.joints[jointName].angle * RAD2DEG;
+            const formattedAngle = angleInDegrees.toFixed(1);
+            return [
+                `J${index + 1}`,
+                formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)
+            ];
+        })
+);
+
 // State management
 const state = {
     loop: false,
@@ -371,18 +405,7 @@ const updateSocketPackage = () => {
     if (!wsON || !sendON || !loadComplete) return;
 
     if (window.jointsData.length !== 0) {
-        const jointAngles = Object.fromEntries(
-            Object.keys(viewer.robot.joints)
-                .slice(0, 6)
-                .map((key, index) => {
-                    let angle = viewer.robot.joints[key].angle * RAD2DEG;
-                    let rounded = angle.toFixed(1);
-                    return [
-                        `J${index + 1}`,
-                        rounded.endsWith(".0") ? parseInt(angle) : parseFloat(rounded)
-                    ];
-                })
-        );
+        const jointAngles = getJointAngleMap();
 
         const wsPack = {
             currentCardIndex: currentCardIndex + 1,
@@ -713,18 +736,13 @@ const highlightCard = (card, updateVidTime = true) => {
 };
 
 elements.copyBtn.addEventListener('click', () => {
-    let jointAngles = Object.fromEntries(
-        Object.keys(viewer.robot.joints)
-            .slice(0, 6)
-            .map((key, index) => {
-                let angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
-                let formattedAngle = angleInDegrees.toFixed(1);
-                return [`J${index + 1}`, formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
-            })
-    );
+    const jointAngles = getJointAngleMap();
+    const copiedTime = Number.isFinite(vidTimeProxy.value)
+        ? Math.round(vidTimeProxy.value * 100) / 100
+        : 0;
 
     const newCardData = {
-        time: Math.round(vidTimeProxy.value * 100) / 100,
+        time: copiedTime,
         group: window.groupNameSelected,
         angles: jointAngles
     };
@@ -748,15 +766,7 @@ elements.copyBtn.addEventListener('click', () => {
 });
 
 elements.waitBtn.addEventListener('click', () => {
-    let jointAngles = Object.fromEntries(
-        Object.keys(viewer.robot.joints)
-            .slice(0, 6)
-            .map((key, index) => {
-                let angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
-                let formattedAngle = angleInDegrees.toFixed(1);
-                return [`J${index + 1}`, formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
-            })
-    );
+    const jointAngles = getJointAngleMap();
 
     const newCardData = {
         time: Math.round(vidTimeProxy.value * 100) / 100,
@@ -791,15 +801,7 @@ function refreshCard() {
     const card = elements.cardContainer.querySelector('.highlighted');
     const index = Array.from(card.parentNode.children).indexOf(card);
 
-    let jointAngles = Object.fromEntries(
-        Object.keys(viewer.robot.joints)
-            .slice(0, 6)
-            .map((key, index) => {
-                let angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
-                let formattedAngle = angleInDegrees.toFixed(1);
-                return [`J${index + 1}`, formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
-            })
-    );
+    const jointAngles = getJointAngleMap();
 
     const time = card.querySelector('input').value;
     const group = card.querySelector('#group-card').textContent;
