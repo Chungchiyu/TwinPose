@@ -120,6 +120,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 })({"KcYi":[function(require,module,exports) {
 var define;
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t.return || t.return(); } finally { if (u) throw o; } } }; }
 function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return e; }; var t, e = {}, r = Object.prototype, n = r.hasOwnProperty, o = Object.defineProperty || function (t, e, r) { t[e] = r.value; }, i = "function" == typeof Symbol ? Symbol : {}, a = i.iterator || "@@iterator", c = i.asyncIterator || "@@asyncIterator", u = i.toStringTag || "@@toStringTag"; function define(t, e, r) { return Object.defineProperty(t, e, { value: r, enumerable: !0, configurable: !0, writable: !0 }), t[e]; } try { define({}, ""); } catch (t) { define = function define(t, e, r) { return t[e] = r; }; } function wrap(t, e, r, n) { var i = e && e.prototype instanceof Generator ? e : Generator, a = Object.create(i.prototype), c = new Context(n || []); return o(a, "_invoke", { value: makeInvokeMethod(t, r, c) }), a; } function tryCatch(t, e, r) { try { return { type: "normal", arg: t.call(e, r) }; } catch (t) { return { type: "throw", arg: t }; } } e.wrap = wrap; var h = "suspendedStart", l = "suspendedYield", f = "executing", s = "completed", y = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var p = {}; define(p, a, function () { return this; }); var d = Object.getPrototypeOf, v = d && d(d(values([]))); v && v !== r && n.call(v, a) && (p = v); var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p); function defineIteratorMethods(t) { ["next", "throw", "return"].forEach(function (e) { define(t, e, function (t) { return this._invoke(e, t); }); }); } function AsyncIterator(t, e) { function invoke(r, o, i, a) { var c = tryCatch(t[r], t, o); if ("throw" !== c.type) { var u = c.arg, h = u.value; return h && "object" == _typeof(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) { invoke("next", t, i, a); }, function (t) { invoke("throw", t, i, a); }) : e.resolve(h).then(function (t) { u.value = t, i(u); }, function (t) { return invoke("throw", t, i, a); }); } a(c.arg); } var r; o(this, "_invoke", { value: function value(t, n) { function callInvokeWithMethodAndArg() { return new e(function (e, r) { invoke(t, n, e, r); }); } return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(e, r, n) { var o = h; return function (i, a) { if (o === f) throw Error("Generator is already running"); if (o === s) { if ("throw" === i) throw a; return { value: t, done: !0 }; } for (n.method = i, n.arg = a;;) { var c = n.delegate; if (c) { var u = maybeInvokeDelegate(c, n); if (u) { if (u === y) continue; return u; } } if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) { if (o === h) throw o = s, n.arg; n.dispatchException(n.arg); } else "return" === n.method && n.abrupt("return", n.arg); o = f; var p = tryCatch(e, r, n); if ("normal" === p.type) { if (o = n.done ? s : l, p.arg === y) continue; return { value: p.arg, done: n.done }; } "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg); } }; } function maybeInvokeDelegate(e, r) { var n = r.method, o = e.iterator[n]; if (o === t) return r.delegate = null, "throw" === n && e.iterator.return && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y; var i = tryCatch(o, e.iterator, r.arg); if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y; var a = i.arg; return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y); } function pushTryEntry(t) { var e = { tryLoc: t[0] }; 1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e); } function resetTryEntry(t) { var e = t.completion || {}; e.type = "normal", delete e.arg, t.completion = e; } function Context(t) { this.tryEntries = [{ tryLoc: "root" }], t.forEach(pushTryEntry, this), this.reset(!0); } function values(e) { if (e || "" === e) { var r = e[a]; if (r) return r.call(e); if ("function" == typeof e.next) return e; if (!isNaN(e.length)) { var o = -1, i = function next() { for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next; return next.value = t, next.done = !0, next; }; return i.next = i; } } throw new TypeError(_typeof(e) + " is not iterable"); } return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), o(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) { var e = "function" == typeof t && t.constructor; return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name)); }, e.mark = function (t) { return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t; }, e.awrap = function (t) { return { __await: t }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () { return this; }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) { void 0 === i && (i = Promise); var a = new AsyncIterator(wrap(t, r, n, o), i); return e.isGeneratorFunction(r) ? a : a.next().then(function (t) { return t.done ? t.value : a.next(); }); }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () { return this; }), define(g, "toString", function () { return "[object Generator]"; }), e.keys = function (t) { var e = Object(t), r = []; for (var n in e) r.push(n); return r.reverse(), function next() { for (; r.length;) { var t = r.pop(); if (t in e) return next.value = t, next.done = !1, next; } return next.done = !0, next; }; }, e.values = values, Context.prototype = { constructor: Context, reset: function reset(e) { if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t); }, stop: function stop() { this.done = !0; var t = this.tryEntries[0].completion; if ("throw" === t.type) throw t.arg; return this.rval; }, dispatchException: function dispatchException(e) { if (this.done) throw e; var r = this; function handle(n, o) { return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o; } for (var o = this.tryEntries.length - 1; o >= 0; --o) { var i = this.tryEntries[o], a = i.completion; if ("root" === i.tryLoc) return handle("end"); if (i.tryLoc <= this.prev) { var c = n.call(i, "catchLoc"), u = n.call(i, "finallyLoc"); if (c && u) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } else if (c) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); } else { if (!u) throw Error("try statement without catch or finally"); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } } } }, abrupt: function abrupt(t, e) { for (var r = this.tryEntries.length - 1; r >= 0; --r) { var o = this.tryEntries[r]; if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) { var i = o; break; } } i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null); var a = i ? i.completion : {}; return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a); }, complete: function complete(t, e) { if ("throw" === t.type) throw t.arg; return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y; }, finish: function finish(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y; } }, catch: function _catch(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.tryLoc === t) { var n = r.completion; if ("throw" === n.type) { var o = n.arg; resetTryEntry(r); } return o; } } throw Error("illegal catch attempt"); }, delegateYield: function delegateYield(e, r, n) { return this.delegate = { iterator: values(e), resultName: r, nextLoc: n }, "next" === this.method && (this.arg = t), y; } }, e; }
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
@@ -193,10 +194,10 @@ function initPoseDetector() {
   return _initPoseDetector.apply(this, arguments);
 }
 function _initPoseDetector() {
-  _initPoseDetector = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
+  _initPoseDetector = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
     var detectorConfig;
-    return _regeneratorRuntime().wrap(function _callee$(_context) {
-      while (1) switch (_context.prev = _context.next) {
+    return _regeneratorRuntime().wrap(function _callee2$(_context2) {
+      while (1) switch (_context2.prev = _context2.next) {
         case 0:
           model = poseDetection.SupportedModels.BlazePose;
           detectorConfig = {
@@ -209,15 +210,15 @@ function _initPoseDetector() {
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
           };
-          _context.next = 4;
+          _context2.next = 4;
           return poseDetection.createDetector(model, detectorConfig);
         case 4:
-          return _context.abrupt("return", _context.sent);
+          return _context2.abrupt("return", _context2.sent);
         case 5:
         case "end":
-          return _context.stop();
+          return _context2.stop();
       }
-    }, _callee);
+    }, _callee2);
   }));
   return _initPoseDetector.apply(this, arguments);
 }
@@ -225,21 +226,21 @@ function detectPose(_x, _x2) {
   return _detectPose.apply(this, arguments);
 }
 function _detectPose() {
-  _detectPose = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2(detector, video) {
-    return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-      while (1) switch (_context2.prev = _context2.next) {
+  _detectPose = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(detector, video) {
+    return _regeneratorRuntime().wrap(function _callee3$(_context3) {
+      while (1) switch (_context3.prev = _context3.next) {
         case 0:
-          _context2.next = 2;
+          _context3.next = 2;
           return detector.estimatePoses(video, {
             flipHorizontal: isFlipped
           });
         case 2:
-          return _context2.abrupt("return", _context2.sent);
+          return _context3.abrupt("return", _context3.sent);
         case 3:
         case "end":
-          return _context2.stop();
+          return _context3.stop();
       }
-    }, _callee2);
+    }, _callee3);
   }));
   return _detectPose.apply(this, arguments);
 }
@@ -247,28 +248,28 @@ function LoadMediaPipe() {
   return _LoadMediaPipe.apply(this, arguments);
 }
 function _LoadMediaPipe() {
-  _LoadMediaPipe = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3() {
-    return _regeneratorRuntime().wrap(function _callee3$(_context3) {
-      while (1) switch (_context3.prev = _context3.next) {
+  _LoadMediaPipe = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4() {
+    return _regeneratorRuntime().wrap(function _callee4$(_context4) {
+      while (1) switch (_context4.prev = _context4.next) {
         case 0:
-          _context3.prev = 0;
-          _context3.next = 3;
+          _context4.prev = 0;
+          _context4.next = 3;
           return initPoseDetector();
         case 3:
-          detector = _context3.sent;
+          detector = _context4.sent;
           console.log('MediaPipe loaded successfully');
           poseNetLoaded = true;
-          _context3.next = 11;
+          _context4.next = 11;
           break;
         case 8:
-          _context3.prev = 8;
-          _context3.t0 = _context3["catch"](0);
-          console.error('Error loading the MediaPipe model', _context3.t0);
+          _context4.prev = 8;
+          _context4.t0 = _context4["catch"](0);
+          console.error('Error loading the MediaPipe model', _context4.t0);
         case 11:
         case "end":
-          return _context3.stop();
+          return _context4.stop();
       }
-    }, _callee3, null, [[0, 8]]);
+    }, _callee4, null, [[0, 8]]);
   }));
   return _LoadMediaPipe.apply(this, arguments);
 }
@@ -726,14 +727,14 @@ function loadVideo(_x3) {
   return _loadVideo.apply(this, arguments);
 }
 function _loadVideo() {
-  _loadVideo = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(event) {
+  _loadVideo = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(event) {
     var file;
-    return _regeneratorRuntime().wrap(function _callee4$(_context4) {
-      while (1) switch (_context4.prev = _context4.next) {
+    return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+      while (1) switch (_context5.prev = _context5.next) {
         case 0:
           file = event.target.files[0];
           if (!file) {
-            _context4.next = 23;
+            _context5.next = 23;
             break;
           }
           video.src = URL.createObjectURL(file);
@@ -741,11 +742,11 @@ function _loadVideo() {
           loading.classList.remove('hidden');
           canvas.style.display = 'none';
           selectVideoButton.style.display = 'none';
-          _context4.next = 9;
+          _context5.next = 9;
           return video.play();
         case 9:
           video.pause();
-          _context4.next = 12;
+          _context5.next = 12;
           return generateThumbnails();
         case 12:
           closeButton.style.display = 'flex';
@@ -761,9 +762,9 @@ function _loadVideo() {
           window.updateMarkers();
         case 23:
         case "end":
-          return _context4.stop();
+          return _context5.stop();
       }
-    }, _callee4);
+    }, _callee5);
   }));
   return _loadVideo.apply(this, arguments);
 }
@@ -779,16 +780,16 @@ function toggleWebcam() {
   return _toggleWebcam.apply(this, arguments);
 }
 function _toggleWebcam() {
-  _toggleWebcam = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5() {
-    return _regeneratorRuntime().wrap(function _callee5$(_context5) {
-      while (1) switch (_context5.prev = _context5.next) {
+  _toggleWebcam = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6() {
+    return _regeneratorRuntime().wrap(function _callee6$(_context6) {
+      while (1) switch (_context6.prev = _context6.next) {
         case 0:
           if (isWebcamActive) {
-            _context5.next = 25;
+            _context6.next = 25;
             break;
           }
-          _context5.prev = 1;
-          _context5.next = 4;
+          _context6.prev = 1;
+          _context6.next = 4;
           return navigator.mediaDevices.getUserMedia({
             video: {
               width: {
@@ -800,7 +801,7 @@ function _toggleWebcam() {
             }
           });
         case 4:
-          webcamStream = _context5.sent;
+          webcamStream = _context6.sent;
           video.srcObject = webcamStream;
           video.play();
 
@@ -823,24 +824,24 @@ function _toggleWebcam() {
 
           document.querySelector('.time-container').style.display = 'none';
           document.querySelector('.progress-container').style.display = 'none';
-          _context5.next = 23;
+          _context6.next = 23;
           break;
         case 19:
-          _context5.prev = 19;
-          _context5.t0 = _context5["catch"](1);
-          console.error('Error accessing webcam:', _context5.t0);
+          _context6.prev = 19;
+          _context6.t0 = _context6["catch"](1);
+          console.error('Error accessing webcam:', _context6.t0);
           alert('Unable to access webcam');
         case 23:
-          _context5.next = 26;
+          _context6.next = 26;
           break;
         case 25:
           // Stop webcam
           stopWebcam();
         case 26:
         case "end":
-          return _context5.stop();
+          return _context6.stop();
       }
-    }, _callee5, null, [[1, 19]]);
+    }, _callee6, null, [[1, 19]]);
   }));
   return _toggleWebcam.apply(this, arguments);
 }
@@ -877,9 +878,9 @@ function toggleFlip() {
   return _toggleFlip.apply(this, arguments);
 }
 function _toggleFlip() {
-  _toggleFlip = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6() {
-    return _regeneratorRuntime().wrap(function _callee6$(_context6) {
-      while (1) switch (_context6.prev = _context6.next) {
+  _toggleFlip = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7() {
+    return _regeneratorRuntime().wrap(function _callee7$(_context7) {
+      while (1) switch (_context7.prev = _context7.next) {
         case 0:
           isFlipped = !isFlipped;
           console.log('isFlipped', isFlipped);
@@ -892,16 +893,16 @@ function _toggleFlip() {
             // canvas.classList.remove('flipped');
             flipButton.classList.remove('active');
           }
-          _context6.next = 5;
+          _context7.next = 5;
           return initPoseDetector();
         case 5:
-          detector = _context6.sent;
+          detector = _context7.sent;
           drawPoses(lastPoses);
         case 7:
         case "end":
-          return _context6.stop();
+          return _context7.stop();
       }
-    }, _callee6);
+    }, _callee7);
   }));
   return _toggleFlip.apply(this, arguments);
 }
@@ -1002,10 +1003,10 @@ function generateThumbnails() {
   return _generateThumbnails.apply(this, arguments);
 }
 function _generateThumbnails() {
-  _generateThumbnails = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7() {
+  _generateThumbnails = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee8() {
     var duration, thumbnailCount, thumbnailCanvas, context, i, thumbnailTime, thumbnailDiv, thumbnails;
-    return _regeneratorRuntime().wrap(function _callee7$(_context7) {
-      while (1) switch (_context7.prev = _context7.next) {
+    return _regeneratorRuntime().wrap(function _callee8$(_context8) {
+      while (1) switch (_context8.prev = _context8.next) {
         case 0:
           duration = video.duration;
           thumbnailCount = 20;
@@ -1016,11 +1017,11 @@ function _generateThumbnails() {
           i = 0;
         case 7:
           if (!(i < thumbnailCount)) {
-            _context7.next = 20;
+            _context8.next = 20;
             break;
           }
           thumbnailTime = i / thumbnailCount * duration;
-          _context7.next = 11;
+          _context8.next = 11;
           return setVideoCurrentTime(video, thumbnailTime);
         case 11:
           thumbnailDiv = document.createElement('div');
@@ -1031,7 +1032,7 @@ function _generateThumbnails() {
           thumbnailDiv.style.backgroundImage = "url(".concat(thumbnailCanvas.toDataURL(), ")");
         case 17:
           i++;
-          _context7.next = 7;
+          _context8.next = 7;
           break;
         case 20:
           loading.classList.add('hidden');
@@ -1042,9 +1043,9 @@ function _generateThumbnails() {
           vidTimeProxy.value = 0;
         case 24:
         case "end":
-          return _context7.stop();
+          return _context8.stop();
       }
-    }, _callee7);
+    }, _callee8);
   }));
   return _generateThumbnails.apply(this, arguments);
 }
@@ -1052,11 +1053,11 @@ function setVideoCurrentTime(_x4, _x5) {
   return _setVideoCurrentTime.apply(this, arguments);
 }
 function _setVideoCurrentTime() {
-  _setVideoCurrentTime = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee8(video, time) {
-    return _regeneratorRuntime().wrap(function _callee8$(_context8) {
-      while (1) switch (_context8.prev = _context8.next) {
+  _setVideoCurrentTime = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee9(video, time) {
+    return _regeneratorRuntime().wrap(function _callee9$(_context9) {
+      while (1) switch (_context9.prev = _context9.next) {
         case 0:
-          return _context8.abrupt("return", new Promise(function (resolve) {
+          return _context9.abrupt("return", new Promise(function (resolve) {
             vidTimeProxy.value = time;
             video.addEventListener('seeked', resolve, {
               once: true
@@ -1064,9 +1065,9 @@ function _setVideoCurrentTime() {
           }));
         case 1:
         case "end":
-          return _context8.stop();
+          return _context9.stop();
       }
-    }, _callee8);
+    }, _callee9);
   }));
   return _setVideoCurrentTime.apply(this, arguments);
 }
@@ -1145,31 +1146,31 @@ function estimatePoses(_x6) {
   return _estimatePoses.apply(this, arguments);
 }
 function _estimatePoses() {
-  _estimatePoses = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee9(refresh) {
+  _estimatePoses = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee10(refresh) {
     var currentTime, poses;
-    return _regeneratorRuntime().wrap(function _callee9$(_context9) {
-      while (1) switch (_context9.prev = _context9.next) {
+    return _regeneratorRuntime().wrap(function _callee10$(_context10) {
+      while (1) switch (_context10.prev = _context10.next) {
         case 0:
           if (!(poseDetectToggle.classList.contains('checked') && video.readyState >= 2 && poseNetLoaded || refresh)) {
-            _context9.next = 8;
+            _context10.next = 8;
             break;
           }
           currentTime = video.currentTime;
           if (!(currentTime !== lastProcessedTime || refresh)) {
-            _context9.next = 8;
+            _context10.next = 8;
             break;
           }
           lastProcessedTime = currentTime;
-          _context9.next = 6;
+          _context10.next = 6;
           return detectPose(detector, video);
         case 6:
-          poses = _context9.sent;
+          poses = _context10.sent;
           drawPoses(poses);
         case 8:
         case "end":
-          return _context9.stop();
+          return _context10.stop();
       }
-    }, _callee9);
+    }, _callee10);
   }));
   return _estimatePoses.apply(this, arguments);
 }
@@ -1326,14 +1327,39 @@ autoCaptureButton.addEventListener('click', function () {
 // Function to automatically capture data throughout the video
 function autoCaptureProcess(_x7) {
   return _autoCaptureProcess.apply(this, arguments);
-}
+} // Shared by Scatter (evenly-spaced times) and Import (times read from a CSV):
+// seeks the video to each time, estimates the pose, and captures it as a card.
 function _autoCaptureProcess() {
-  _autoCaptureProcess = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee10(interval) {
-    var duration, totalFrames, processedFrames, time, percentage, progressElement, overlay;
-    return _regeneratorRuntime().wrap(function _callee10$(_context10) {
-      while (1) switch (_context10.prev = _context10.next) {
+  _autoCaptureProcess = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee11(interval) {
+    var duration, times, time;
+    return _regeneratorRuntime().wrap(function _callee11$(_context11) {
+      while (1) switch (_context11.prev = _context11.next) {
         case 0:
-          _context10.prev = 0;
+          duration = video.duration;
+          times = [];
+          for (time = 0; time <= duration; time += interval) {
+            times.push(time);
+          }
+          _context11.next = 5;
+          return runCaptureLoop(times);
+        case 5:
+        case "end":
+          return _context11.stop();
+      }
+    }, _callee11);
+  }));
+  return _autoCaptureProcess.apply(this, arguments);
+}
+function runCaptureLoop(_x8) {
+  return _runCaptureLoop.apply(this, arguments);
+} // ========== Import keyframe times from a CSV ==========
+function _runCaptureLoop() {
+  _runCaptureLoop = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee12(times) {
+    var totalFrames, processedFrames, _iterator, _step, time, percentage, progressElement, overlay;
+    return _regeneratorRuntime().wrap(function _callee12$(_context12) {
+      while (1) switch (_context12.prev = _context12.next) {
+        case 0:
+          _context12.prev = 0;
           // Clear existing markers if needed
           progressContainer.querySelectorAll('.progress-marker').forEach(function (mark) {
             return mark.remove();
@@ -1341,29 +1367,29 @@ function _autoCaptureProcess() {
 
           // Clear existing data
           window.jointsData = [];
-
-          // Get video duration
-          duration = video.duration;
-          totalFrames = Math.floor(duration / interval);
-          processedFrames = 0; // Process each frame
-          time = 0;
-        case 7:
-          if (!(time <= duration)) {
-            _context10.next = 25;
+          totalFrames = times.length;
+          processedFrames = 0; // Process each time
+          _iterator = _createForOfIteratorHelper(times);
+          _context12.prev = 6;
+          _iterator.s();
+        case 8:
+          if ((_step = _iterator.n()).done) {
+            _context12.next = 26;
             break;
           }
+          time = _step.value;
           if (!shouldCancel) {
-            _context10.next = 10;
+            _context12.next = 12;
             break;
           }
-          return _context10.abrupt("break", 25);
-        case 10:
-          _context10.next = 12;
-          return setVideoCurrentTime(video, time);
+          return _context12.abrupt("break", 26);
         case 12:
-          _context10.next = 14;
-          return estimatePoses(true);
+          _context12.next = 14;
+          return setVideoCurrentTime(video, time);
         case 14:
+          _context12.next = 16;
+          return estimatePoses(true);
+        case 16:
           // capture data if pose detection is valid
           if (lastPoseAngles && Object.keys(lastPoseAngles).length > 0) {
             window.captureData(lastPoseAngles);
@@ -1379,30 +1405,40 @@ function _autoCaptureProcess() {
           }
 
           // Small delay to allow UI updates
-          _context10.next = 22;
+          _context12.next = 24;
           return new Promise(function (resolve) {
             return setTimeout(resolve, 10);
           });
-        case 22:
-          time += interval;
-          _context10.next = 7;
+        case 24:
+          _context12.next = 8;
           break;
-        case 25:
+        case 26:
+          _context12.next = 31;
+          break;
+        case 28:
+          _context12.prev = 28;
+          _context12.t0 = _context12["catch"](6);
+          _iterator.e(_context12.t0);
+        case 31:
+          _context12.prev = 31;
+          _iterator.f();
+          return _context12.finish(31);
+        case 34:
           // Show completion message
           if (!shouldCancel) {
             alert("Finished capturing ".concat(window.jointsData.length, " poses!"));
           } else {
             alert("Cancelled! ".concat(window.jointsData.length, " poses captured."));
           }
-          _context10.next = 32;
+          _context12.next = 41;
           break;
-        case 28:
-          _context10.prev = 28;
-          _context10.t0 = _context10["catch"](0);
-          console.error('An error occurred during the auto-capturing process:', _context10.t0);
+        case 37:
+          _context12.prev = 37;
+          _context12.t1 = _context12["catch"](0);
+          console.error('An error occurred during the capturing process:', _context12.t1);
           alert('An error occurred during the capturing process. Please check the console for details.');
-        case 32:
-          _context10.prev = 32;
+        case 41:
+          _context12.prev = 41;
           // Always clean up
           isCapturing = false;
           shouldCancel = false;
@@ -1420,15 +1456,144 @@ function _autoCaptureProcess() {
           if (typeof window.updateMarkers === 'function') {
             window.updateMarkers();
           }
-          return _context10.finish(32);
-        case 40:
+          return _context12.finish(41);
+        case 49:
         case "end":
-          return _context10.stop();
+          return _context12.stop();
       }
-    }, _callee10, null, [[0, 28, 32, 40]]);
+    }, _callee12, null, [[0, 37, 41, 49], [6, 28, 31, 34]]);
   }));
-  return _autoCaptureProcess.apply(this, arguments);
+  return _runCaptureLoop.apply(this, arguments);
 }
+var importButton = document.getElementById('import-data');
+var importCsvInput = document.getElementById('import-csv-input');
+
+// Parses a `time_s` column out of a CSV like:
+// time_s,frame@30fps,reason
+// 0.0,0,start
+// 0.867,26,valley
+function parseTimesFromCsv(text) {
+  var lines = text.split(/\r?\n/).filter(function (line) {
+    return line.trim().length > 0;
+  });
+  if (lines.length === 0) return [];
+  var header = lines[0].split(',').map(function (h) {
+    return h.trim();
+  });
+  var timeIndex = header.indexOf('time_s');
+  if (timeIndex === -1) {
+    throw new Error('CSV is missing a "time_s" column');
+  }
+  return lines.slice(1).map(function (line) {
+    return parseFloat(line.split(',')[timeIndex]);
+  }).filter(function (time) {
+    return Number.isFinite(time);
+  });
+}
+importButton.addEventListener('click', function () {
+  if (isCapturing) return;
+  if (!poseDetectToggle.classList.contains('checked')) {
+    alert('Please enable pose detection before capturing');
+    return;
+  }
+  importCsvInput.click();
+});
+importCsvInput.addEventListener('change', /*#__PURE__*/function () {
+  var _ref5 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(event) {
+    var file, times, text, duration, inRange, skippedTimes, rangeLabel, progressOverlay;
+    return _regeneratorRuntime().wrap(function _callee$(_context) {
+      while (1) switch (_context.prev = _context.next) {
+        case 0:
+          file = event.target.files[0];
+          event.target.value = ''; // allow re-importing the same file later
+          if (file) {
+            _context.next = 4;
+            break;
+          }
+          return _context.abrupt("return");
+        case 4:
+          _context.prev = 4;
+          _context.next = 7;
+          return file.text();
+        case 7:
+          text = _context.sent;
+          times = parseTimesFromCsv(text);
+          _context.next = 16;
+          break;
+        case 11:
+          _context.prev = 11;
+          _context.t0 = _context["catch"](4);
+          console.error('Failed to read the CSV file:', _context.t0);
+          alert("Failed to read CSV: ".concat(_context.t0.message));
+          return _context.abrupt("return");
+        case 16:
+          if (!(times.length === 0)) {
+            _context.next = 19;
+            break;
+          }
+          alert('No valid times found in the CSV (expected a "time_s" column).');
+          return _context.abrupt("return");
+        case 19:
+          // Drop times outside the loaded video's range and let the user know which
+          // ones got skipped, instead of silently clamping or failing the import
+          duration = video.duration;
+          inRange = function inRange(time) {
+            return time >= 0 && (!Number.isFinite(duration) || time <= duration);
+          };
+          skippedTimes = times.filter(function (time) {
+            return !inRange(time);
+          });
+          times = times.filter(inRange);
+          if (skippedTimes.length > 0) {
+            rangeLabel = Number.isFinite(duration) ? "0 - ".concat(duration.toFixed(2)) : '>= 0';
+            alert("Skipping ".concat(skippedTimes.length, " time(s) outside the video's range (").concat(rangeLabel, "s): ").concat(skippedTimes.join(', ')));
+          }
+          if (!(times.length === 0)) {
+            _context.next = 27;
+            break;
+          }
+          alert('No times remain after skipping out-of-range entries.');
+          return _context.abrupt("return");
+        case 27:
+          if (!(window.jointsData && window.jointsData.length > 0)) {
+            _context.next = 33;
+            break;
+          }
+          if (!confirm("There are already ".concat(window.jointsData.length, " captured points. Do you want to clear the existing captures and continue? Clicking \"OK\" will clear all existing captures."))) {
+            _context.next = 32;
+            break;
+          }
+          window.clearALLCards();
+          _context.next = 33;
+          break;
+        case 32:
+          return _context.abrupt("return");
+        case 33:
+          // Pause video during the process
+          video.pause();
+
+          // Create the same progress indicator with cancel button used by Scatter
+          progressOverlay = document.createElement('div');
+          progressOverlay.className = 'progress-overlay';
+          progressOverlay.innerHTML = "\n    <div class=\"progress-message\">Importing Data... <span id=\"progress-percent\">0%</span></div>\n    <button id=\"cancel-capturing\" class=\"cancel-button\">Cancel</button>\n  ";
+          document.body.appendChild(progressOverlay);
+          document.getElementById('cancel-capturing').addEventListener('click', function () {
+            shouldCancel = true;
+          });
+          isCapturing = true;
+          shouldCancel = false;
+          _context.next = 43;
+          return runCaptureLoop(times);
+        case 43:
+        case "end":
+          return _context.stop();
+      }
+    }, _callee, null, [[4, 11]]);
+  }));
+  return function (_x9) {
+    return _ref5.apply(this, arguments);
+  };
+}());
 var symmetricPairs = [["6", "3"], ["5", "2"], ["4", "1"], ["8", "7"], ["10", "9"],
 // head
 ["12", "11"],

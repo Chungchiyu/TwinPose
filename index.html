@@ -77,6 +77,8 @@
                         <button id="capture-data" class="active">Capture</button>
                         <button id="update-pose" class="active">Update</button>
                         <button id="scatter-data" class="active">Scatter</button>
+                        <button id="import-data" class="active">Import</button>
+                        <input type="file" id="import-csv-input" accept=".csv" style="display: none;">
                         <button id="flip-button" class="">Flip Cam</button>
                         <button id="restart" class="active">Restart</button>
                     </div>
@@ -258,7 +260,13 @@
                 <div class="resize-handle right"></div>
                 <div class="resize-handle corner"></div>
             </div>
-            <div id="poseCard-container"></div>
+            <div id="poseCard-edge-trigger"></div>
+            <div id="poseCard-wrapper">
+                <button id="poseCard-tab" class="btn" title="Pin pose cards"><i class="fa fa-thumb-tack"></i></button>
+                <button id="poseCard-scroll-top" class="poseCard-scroll-btn" title="Scroll to top"><i class="fa fa-chevron-up"></i></button>
+                <div id="poseCard-container"></div>
+                <button id="poseCard-scroll-bottom" class="poseCard-scroll-btn" title="Scroll to bottom"><i class="fa fa-chevron-down"></i></button>
+            </div>
         </div>
     </div>
 
