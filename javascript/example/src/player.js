@@ -1070,6 +1070,17 @@ autoCaptureButton.addEventListener('click', () => {
 
 // Function to automatically capture data throughout the video
 async function autoCaptureProcess(interval) {
+  const duration = video.duration;
+  const times = [];
+  for (let time = 0; time <= duration; time += interval) {
+    times.push(time);
+  }
+  await runCaptureLoop(times);
+}
+
+// Shared by Scatter (evenly-spaced times) and Import (times read from a CSV):
+// seeks the video to each time, estimates the pose, and captures it as a card.
+async function runCaptureLoop(times) {
   try {
     // Clear existing markers if needed
     progressContainer.querySelectorAll('.progress-marker').forEach(mark => mark.remove());
@@ -1077,13 +1088,11 @@ async function autoCaptureProcess(interval) {
     // Clear existing data
     window.jointsData = [];
 
-    // Get video duration
-    const duration = video.duration;
-    const totalFrames = Math.floor(duration / interval);
+    const totalFrames = times.length;
     let processedFrames = 0;
 
-    // Process each frame
-    for (let time = 0; time <= duration; time += interval) {
+    // Process each time
+    for (const time of times) {
       // Check if user wants to cancel
       if (shouldCancel) {
         break;
@@ -1121,7 +1130,7 @@ async function autoCaptureProcess(interval) {
     }
 
   } catch (error) {
-    console.error('An error occurred during the auto-capturing process:', error);
+    console.error('An error occurred during the capturing process:', error);
     alert('An error occurred during the capturing process. Please check the console for details.');
   } finally {
     // Always clean up
@@ -1144,6 +1153,108 @@ async function autoCaptureProcess(interval) {
     }
   }
 }
+
+// ========== Import keyframe times from a CSV ==========
+
+const importButton = document.getElementById('import-data');
+const importCsvInput = document.getElementById('import-csv-input');
+
+// Parses a `time_s` column out of a CSV like:
+// time_s,frame@30fps,reason
+// 0.0,0,start
+// 0.867,26,valley
+function parseTimesFromCsv(text) {
+  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+  if (lines.length === 0) return [];
+
+  const header = lines[0].split(',').map(h => h.trim());
+  const timeIndex = header.indexOf('time_s');
+  if (timeIndex === -1) {
+    throw new Error('CSV is missing a "time_s" column');
+  }
+
+  return lines.slice(1)
+    .map(line => parseFloat(line.split(',')[timeIndex]))
+    .filter(time => Number.isFinite(time));
+}
+
+importButton.addEventListener('click', () => {
+  if (isCapturing) return;
+
+  if (!poseDetectToggle.classList.contains('checked')) {
+    alert('Please enable pose detection before capturing');
+    return;
+  }
+
+  importCsvInput.click();
+});
+
+importCsvInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  event.target.value = ''; // allow re-importing the same file later
+  if (!file) return;
+
+  let times;
+  try {
+    const text = await file.text();
+    times = parseTimesFromCsv(text);
+  } catch (error) {
+    console.error('Failed to read the CSV file:', error);
+    alert(`Failed to read CSV: ${error.message}`);
+    return;
+  }
+
+  if (times.length === 0) {
+    alert('No valid times found in the CSV (expected a "time_s" column).');
+    return;
+  }
+
+  // Drop times outside the loaded video's range and let the user know which
+  // ones got skipped, instead of silently clamping or failing the import
+  const duration = video.duration;
+  const inRange = time => time >= 0 && (!Number.isFinite(duration) || time <= duration);
+  const skippedTimes = times.filter(time => !inRange(time));
+  times = times.filter(inRange);
+
+  if (skippedTimes.length > 0) {
+    const rangeLabel = Number.isFinite(duration) ? `0 - ${duration.toFixed(2)}` : '>= 0';
+    alert(`Skipping ${skippedTimes.length} time(s) outside the video's range (${rangeLabel}s): ${skippedTimes.join(', ')}`);
+  }
+
+  if (times.length === 0) {
+    alert('No times remain after skipping out-of-range entries.');
+    return;
+  }
+
+  // Check if there are existing captures and confirm before clearing
+  if (window.jointsData && window.jointsData.length > 0) {
+    if (confirm(`There are already ${window.jointsData.length} captured points. Do you want to clear the existing captures and continue? Clicking "OK" will clear all existing captures.`)) {
+      window.clearALLCards();
+    } else {
+      return;
+    }
+  }
+
+  // Pause video during the process
+  video.pause();
+
+  // Create the same progress indicator with cancel button used by Scatter
+  const progressOverlay = document.createElement('div');
+  progressOverlay.className = 'progress-overlay';
+  progressOverlay.innerHTML = `
+    <div class="progress-message">Importing Data... <span id="progress-percent">0%</span></div>
+    <button id="cancel-capturing" class="cancel-button">Cancel</button>
+  `;
+  document.body.appendChild(progressOverlay);
+
+  document.getElementById('cancel-capturing').addEventListener('click', () => {
+    shouldCancel = true;
+  });
+
+  isCapturing = true;
+  shouldCancel = false;
+  await runCaptureLoop(times);
+});
 
 const symmetricPairs = [
   ["6", "3"], ["5", "2"], ["4", "1"], ["8", "7"], ["10", "9"], // head
