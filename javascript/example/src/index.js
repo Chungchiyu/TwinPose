@@ -30,6 +30,11 @@ const elements = {
     animToggle: document.getElementById('do-animate'),
     isLoop: document.getElementById('is-loop'),
     cardContainer: document.getElementById('poseCard-container'),
+    cardWrapper: document.getElementById('poseCard-wrapper'),
+    cardEdgeTrigger: document.getElementById('poseCard-edge-trigger'),
+    cardTab: document.getElementById('poseCard-tab'),
+    cardScrollTopBtn: document.getElementById('poseCard-scroll-top'),
+    cardScrollBottomBtn: document.getElementById('poseCard-scroll-bottom'),
     progressContainer: document.getElementById('progress-container'),
     copyBtn: document.querySelector(".copyBtn"),
     refreshBtn: document.querySelector('.refreshBtn'),
@@ -162,6 +167,115 @@ const capture = () => {
     viewer.renderer.render(viewer.scene, viewer.camera);
     return viewer.renderer.domElement.toDataURL();
 };
+
+// Pose card panel: slides off to the right and auto-hides, unless pinned open
+let cardPanelPinned = false;
+let cardPanelHideTimer = null;
+
+const showCardPanel = () => {
+    clearTimeout(cardPanelHideTimer);
+    elements.cardWrapper.classList.remove('collapsed');
+};
+
+const scheduleHideCardPanel = () => {
+    clearTimeout(cardPanelHideTimer);
+    if (cardPanelPinned) return;
+    cardPanelHideTimer = setTimeout(() => {
+        elements.cardWrapper.classList.add('collapsed');
+    }, 5000);
+};
+
+// Called by any action that adds/changes/removes cards, so the panel pops
+// open to show the result -- then falls back to the normal auto-hide timer
+// (unless the mouse is actually over the panel, which cancels it as usual).
+const revealCardPanel = () => {
+    showCardPanel();
+    scheduleHideCardPanel();
+};
+window.revealCardPanel = revealCardPanel;
+
+elements.cardEdgeTrigger.addEventListener('mouseenter', showCardPanel);
+elements.cardEdgeTrigger.addEventListener('mouseleave', scheduleHideCardPanel);
+elements.cardWrapper.addEventListener('mouseenter', showCardPanel);
+elements.cardWrapper.addEventListener('mouseleave', scheduleHideCardPanel);
+
+elements.cardTab.addEventListener('click', () => {
+    cardPanelPinned = !cardPanelPinned;
+    elements.cardTab.classList.toggle('active', cardPanelPinned);
+    if (cardPanelPinned) {
+        showCardPanel();
+    } else {
+        elements.cardWrapper.classList.add('collapsed');
+    }
+});
+
+// Panel starts open; auto-collapse it after 5s if the mouse never hovers it
+scheduleHideCardPanel();
+
+// Scroll-to-top / scroll-to-bottom hints: reveal the matching arrow when the
+// mouse nears that edge of the card list (only if there's actually room to
+// scroll that way), and jump there on click.
+const SCROLL_HINT_ZONE = 24; // px from the edge that reveals the arrow
+
+// The buttons are DOM siblings of the container (every child of the
+// container is treated as a pose card elsewhere), so they visually overlap
+// its edges without being descendants. That means moving the mouse from the
+// container onto a button fires 'mouseleave' on the container immediately --
+// hide on a short delay instead, and let the button's own hover cancel it.
+let scrollHintHideTimer = null;
+
+const hideScrollHintsSoon = () => {
+    clearTimeout(scrollHintHideTimer);
+    scrollHintHideTimer = setTimeout(() => {
+        elements.cardScrollTopBtn.classList.remove('visible');
+        elements.cardScrollBottomBtn.classList.remove('visible');
+    }, 200);
+};
+
+elements.cardContainer.addEventListener('mousemove', (e) => {
+    const rect = elements.cardContainer.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const canScrollUp = elements.cardContainer.scrollTop > 0;
+    const canScrollDown = elements.cardContainer.scrollTop <
+        elements.cardContainer.scrollHeight - elements.cardContainer.clientHeight - 1;
+
+    clearTimeout(scrollHintHideTimer);
+    elements.cardScrollTopBtn.classList.toggle('visible', y <= SCROLL_HINT_ZONE && canScrollUp);
+    elements.cardScrollBottomBtn.classList.toggle('visible', y >= rect.height - SCROLL_HINT_ZONE && canScrollDown);
+});
+
+elements.cardContainer.addEventListener('mouseleave', hideScrollHintsSoon);
+elements.cardScrollTopBtn.addEventListener('mouseleave', hideScrollHintsSoon);
+elements.cardScrollBottomBtn.addEventListener('mouseleave', hideScrollHintsSoon);
+elements.cardScrollTopBtn.addEventListener('mouseenter', () => clearTimeout(scrollHintHideTimer));
+elements.cardScrollBottomBtn.addEventListener('mouseenter', () => clearTimeout(scrollHintHideTimer));
+
+// Hand-rolled smooth scroll (rAF-driven) instead of relying on
+// scrollTo({behavior:'smooth'}) / CSS scroll-behavior:smooth, since browser
+// support/behavior for those is inconsistent -- this animates regardless.
+const smoothScrollCardsTo = (targetTop, duration = 300) => {
+    const el = elements.cardContainer;
+    const startTop = el.scrollTop;
+    const distance = targetTop - startTop;
+    const startTime = performance.now();
+
+    const step = (now) => {
+        const t = Math.min((now - startTime) / duration, 1);
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        el.scrollTop = startTop + distance * eased;
+        if (t < 1) requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
+};
+
+elements.cardScrollTopBtn.addEventListener('click', () => {
+    smoothScrollCardsTo(0);
+});
+
+elements.cardScrollBottomBtn.addEventListener('click', () => {
+    smoothScrollCardsTo(elements.cardContainer.scrollHeight);
+});
 
 // Event listeners
 elements.isLoop.addEventListener('click', () => {
@@ -745,6 +859,7 @@ const addFrameCard = (index) => {
 
         updateCardNumbers();
         updateAllCardContents();
+        revealCardPanel();
         // console.log(window.jointsData);
     });
 
@@ -792,6 +907,7 @@ const addFrameCard = (index) => {
     // status of the card right before it.
     updateAllCardContents();
     saveLocalData();
+    revealCardPanel();
 
     return card;
 };
@@ -890,6 +1006,7 @@ elements.waitBtn.addEventListener('click', () => {
 
 elements.refreshBtn.addEventListener('click', () => {
     refreshCard();
+    revealCardPanel();
 });
 
 function refreshCard() {
@@ -908,6 +1025,10 @@ function refreshCard() {
 }
 
 elements.refreshAllBtn.addEventListener('click', () => {
+    if (!confirm('This will re-capture the current pose into every card, overwriting their existing angles. Continue?')) {
+        return;
+    }
+    revealCardPanel();
     // console.log(elements.cardContainer.childNodes);
     elements.simLoading.classList.remove('hidden');
     setTimeout(() => {
@@ -947,7 +1068,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 elements.clearBtn.addEventListener('click', () => {
+    if (!confirm('Are you sure you want to clear all captured poses? This cannot be undone.')) {
+        return;
+    }
     clearALLCards();
+    revealCardPanel();
 });
 
 window.clearALLCards = () => {

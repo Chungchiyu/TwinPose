@@ -384,17 +384,102 @@ input:focus {
     opacity: 1;
 }
 
-#poseCard-container {
+/* Owns the fixed position and the slide transform, so the pin tab can ride
+   along with it without becoming a card-indexed child of the container
+   itself (Sortable/index.js treat every child of #poseCard-container as a
+   pose card). */
+#poseCard-wrapper {
     position: fixed;
     top: 20px;
     right: 20px;
+    width: 10%;
+    transition: transform 0.35s ease;
+}
+
+#poseCard-wrapper.collapsed {
+    transform: translateX(calc(100% + 20px));
+    pointer-events: none;
+}
+
+#poseCard-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    width: 10%;
+    width: 100%;
     overflow-y: auto;
-    max-height: 95%;
-    flex: 1;
+    max-height: 95vh;
+    scroll-behavior: smooth;
+}
+
+/* Invisible strip flush against the true right edge of the viewport, always
+   reachable regardless of the panel's state -- hovering it slides the pose
+   card panel out. */
+#poseCard-edge-trigger {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 16px;
+    height: 100%;
+    z-index: 5;
+}
+
+/* Small pinned tab, anchored to the wrapper's top-left corner so it rides
+   along with the panel */
+#poseCard-tab {
+    position: absolute;
+    top: 0;
+    left: -40px;
+    z-index: 3;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    pointer-events: auto;
+}
+
+#poseCard-tab.active {
+    background-color: #a6a6a6;
+    color: red;
+}
+
+/* Scroll-to-top / scroll-to-bottom hints, fade in when the mouse nears
+   the corresponding edge of the pose card list */
+.poseCard-scroll-btn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 26px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    border: 1px solid white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 3;
+}
+
+.poseCard-scroll-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#poseCard-scroll-top {
+    top: 2px;
+}
+
+#poseCard-scroll-bottom {
+    bottom: 2px;
 }
 
 .ui-element {
