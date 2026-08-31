@@ -445,6 +445,10 @@ input:focus {
     color: red;
 }
 
+#poseCard-tab.hidden {
+    display: none;
+}
+
 /* Scroll-to-top / scroll-to-bottom hints, fade in when the mouse nears
    the corresponding edge of the pose card list */
 .poseCard-scroll-btn {

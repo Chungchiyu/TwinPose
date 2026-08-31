@@ -923,7 +923,11 @@ const updateCardNumbers = () => {
             card.querySelector('.number').textContent = index + 1;
         }
     });
+    elements.cardTab.classList.toggle('hidden', elements.cardContainer.children.length === 0);
 };
+
+// Set the tab's correct initial state (hidden until there's at least one card)
+updateCardNumbers();
 
 const highlightCard = (card, updateVidTime = true) => {
     const index = Array.from(card.parentNode.children).indexOf(card);
@@ -1083,6 +1087,7 @@ window.clearALLCards = () => {
     window.selectGroup(0);
     window.groups.splice(1, window.groups.length - 1);
     window.updateGroups();
+    updateCardNumbers();
 }
 
 elements.homeBtn.addEventListener('click', () => {
