@@ -46114,7 +46114,8 @@ var URDFJoint = exports.URDFJoint = /*#__PURE__*/function (_URDFBase4) {
     _this5.axis = new _three.Vector3(1, 0, 0);
     _this5.limit = {
       lower: 0,
-      upper: 0
+      upper: 0,
+      velocity: Infinity
     };
     _this5.ignoreLimits = false;
     _this5.origPosition = null;
@@ -46166,6 +46167,7 @@ var URDFJoint = exports.URDFJoint = /*#__PURE__*/function (_URDFBase4) {
       this.axis = source.axis.clone();
       this.limit.lower = source.limit.lower;
       this.limit.upper = source.limit.upper;
+      this.limit.velocity = source.limit.velocity;
       this.ignoreLimits = false;
       this.jointValue = _toConsumableArray(source.jointValue);
       this.origPosition = source.origPosition ? source.origPosition.clone() : null;
@@ -46730,6 +46732,9 @@ var URDFLoader = exports.default = /*#__PURE__*/function () {
           } else if (type === 'limit') {
             obj.limit.lower = parseFloat(n.getAttribute('lower') || obj.limit.lower);
             obj.limit.upper = parseFloat(n.getAttribute('upper') || obj.limit.upper);
+            if (n.getAttribute('velocity') != null) {
+              obj.limit.velocity = parseFloat(n.getAttribute('velocity'));
+            }
           }
         });
 

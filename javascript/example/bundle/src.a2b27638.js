@@ -46929,7 +46929,8 @@ var URDFJoint = exports.URDFJoint = /*#__PURE__*/function (_URDFBase4) {
     _this5.axis = new _three.Vector3(1, 0, 0);
     _this5.limit = {
       lower: 0,
-      upper: 0
+      upper: 0,
+      velocity: Infinity
     };
     _this5.ignoreLimits = false;
     _this5.origPosition = null;
@@ -46981,6 +46982,7 @@ var URDFJoint = exports.URDFJoint = /*#__PURE__*/function (_URDFBase4) {
       this.axis = source.axis.clone();
       this.limit.lower = source.limit.lower;
       this.limit.upper = source.limit.upper;
+      this.limit.velocity = source.limit.velocity;
       this.ignoreLimits = false;
       this.jointValue = _toConsumableArray(source.jointValue);
       this.origPosition = source.origPosition ? source.origPosition.clone() : null;
@@ -47545,6 +47547,9 @@ var URDFLoader = exports.default = /*#__PURE__*/function () {
           } else if (type === 'limit') {
             obj.limit.lower = parseFloat(n.getAttribute('lower') || obj.limit.lower);
             obj.limit.upper = parseFloat(n.getAttribute('upper') || obj.limit.upper);
+            if (n.getAttribute('velocity') != null) {
+              obj.limit.velocity = parseFloat(n.getAttribute('velocity'));
+            }
           }
         });
 
@@ -48681,21 +48686,30 @@ var URDFManipulator = exports.default = /*#__PURE__*/function (_URDFViewer) {
       emissive: _this.highlightColor,
       emissiveIntensity: 0.25
     });
+
+    // The material used to flag a joint moving faster than its speed limit
+    _this.warningMaterial = new THREE.MeshPhongMaterial({
+      shininess: 10,
+      color: 0xff2222,
+      emissive: 0xff2222,
+      emissiveIntensity: 0.6
+    });
     var isJoint = function isJoint(j) {
       return j.isURDFJoint && j.jointType !== 'fixed';
     };
 
-    // Highlight the link geometry under a joint
-    var highlightLinkGeometry = function highlightLinkGeometry(m, revert) {
+    // Apply (or clear, when material is null) a material override on the
+    // link geometry under a joint
+    var setLinkGeometryMaterial = function setLinkGeometryMaterial(m, material) {
       var _traverse = function traverse(c) {
-        // Set or revert the highlight color
+        // Set or revert the material override
         if (c.type === 'Mesh') {
-          if (revert) {
+          if (material) {
+            if (!('__origMaterial' in c)) c.__origMaterial = c.material;
+            c.material = material;
+          } else if ('__origMaterial' in c) {
             c.material = c.__origMaterial;
             delete c.__origMaterial;
-          } else {
-            c.__origMaterial = c.material;
-            c.material = _this.highlightMaterial;
           }
         }
 
@@ -48711,6 +48725,19 @@ var URDFManipulator = exports.default = /*#__PURE__*/function (_URDFViewer) {
         }
       };
       _traverse(m);
+    };
+
+    // Highlight the link geometry under a joint
+    var highlightLinkGeometry = function highlightLinkGeometry(m, revert) {
+      setLinkGeometryMaterial(m, revert ? null : _this.highlightMaterial);
+    };
+
+    // Flag or clear the speed-limit warning on a named joint
+    _this.setJointWarning = function (jointName, isWarning) {
+      var joint = _this.robot && _this.robot.joints[jointName];
+      if (!joint) return;
+      setLinkGeometryMaterial(joint, isWarning ? _this.warningMaterial : null);
+      _this.redraw();
     };
     var el = _this.renderer.domElement;
     var dragControls = new _URDFDragControls.PointerURDFDragControls(_this.scene, _this.camera, el);
@@ -54383,6 +54410,11 @@ var elements = {
   animToggle: document.getElementById('do-animate'),
   isLoop: document.getElementById('is-loop'),
   cardContainer: document.getElementById('poseCard-container'),
+  cardWrapper: document.getElementById('poseCard-wrapper'),
+  cardEdgeTrigger: document.getElementById('poseCard-edge-trigger'),
+  cardTab: document.getElementById('poseCard-tab'),
+  cardScrollTopBtn: document.getElementById('poseCard-scroll-top'),
+  cardScrollBottomBtn: document.getElementById('poseCard-scroll-bottom'),
   progressContainer: document.getElementById('progress-container'),
   copyBtn: document.querySelector(".copyBtn"),
   refreshBtn: document.querySelector('.refreshBtn'),
@@ -54401,6 +54433,101 @@ var elements = {
 // Constants
 var DEG2RAD = Math.PI / 180;
 var RAD2DEG = 1 / DEG2RAD;
+// Fallback speed limit (deg/s) used when a joint's URDF has no <limit velocity="..."/>
+var DEFAULT_SPEED_LIMIT_DEG = 180;
+var getActuatedJointNames = function getActuatedJointNames() {
+  var robot = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : viewer.robot;
+  if (!(robot !== null && robot !== void 0 && robot.joints)) return [];
+  return Object.values(robot.joints).filter(function (joint) {
+    return (joint === null || joint === void 0 ? void 0 : joint.isURDFJoint) && joint.jointType !== 'fixed';
+  }).sort(function (a, b) {
+    var da = a.name.split(/[^\d]+/g).filter(function (v) {
+      return !!v;
+    }).pop();
+    var db = b.name.split(/[^\d]+/g).filter(function (v) {
+      return !!v;
+    }).pop();
+    if (da !== undefined && db !== undefined) {
+      var delta = parseFloat(da) - parseFloat(db);
+      if (delta !== 0) return delta;
+    }
+    if (a.name > b.name) return 1;
+    if (b.name > a.name) return -1;
+    return 0;
+  }).map(function (joint) {
+    return joint.name;
+  });
+};
+
+// Speed limit for a joint in deg/s, taken from its URDF <limit velocity="..."/>
+// (falls back to DEFAULT_SPEED_LIMIT_DEG when the URDF doesn't define one)
+var getJointSpeedLimitDeg = function getJointSpeedLimitDeg(joint_name) {
+  var _viewer$robot, _joint$limit;
+  var joint = (_viewer$robot = viewer.robot) === null || _viewer$robot === void 0 || (_viewer$robot = _viewer$robot.joints) === null || _viewer$robot === void 0 ? void 0 : _viewer$robot[joint_name];
+  var velocityRad = joint === null || joint === void 0 || (_joint$limit = joint.limit) === null || _joint$limit === void 0 ? void 0 : _joint$limit.velocity;
+  return Number.isFinite(velocityRad) ? velocityRad * RAD2DEG : DEFAULT_SPEED_LIMIT_DEG;
+};
+
+// Returns the 'J1'..'J6' keys whose angular speed between two angle maps
+// (in degrees, `dt` seconds apart) exceeds that joint's speed limit
+var getExceededJoints = function getExceededJoints(anglesA, anglesB, dt) {
+  if (!dt) return [];
+  return Object.keys(anglesA).filter(function (jointName) {
+    if (!(jointName in anglesB)) return false;
+    var speed = Math.abs(anglesB[jointName] - anglesA[jointName]) / dt;
+    return speed > getJointSpeedLimitDeg(jointName.replace('J', 'joint_'));
+  });
+};
+
+// Tracks which joints are currently flagged red on the 3D model (playback-only)
+var warnedJoints = [];
+var set3DJointWarning = function set3DJointWarning(jointNames) {
+  if (jointNames.join(',') === warnedJoints.join(',')) return;
+  warnedJoints.forEach(function (jointName) {
+    if (!jointNames.includes(jointName)) {
+      viewer.setJointWarning(jointName.replace('J', 'joint_'), false);
+    }
+  });
+  jointNames.forEach(function (jointName) {
+    return viewer.setJointWarning(jointName.replace('J', 'joint_'), true);
+  });
+  warnedJoints = jointNames;
+};
+var clear3DJointWarning = function clear3DJointWarning() {
+  return set3DJointWarning([]);
+};
+
+// Both are computed straight from the data (not from playback position), so
+// they show up as soon as the transition is known -- on card creation, edit
+// or reorder.
+
+// The joints of `currentData` that move too fast on the way to the *next*
+// captured pose. Flags this card as the (softer) departure side of an
+// over-speed transition.
+var getOutgoingExceededJoints = function getOutgoingExceededJoints(index) {
+  var currentData = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.jointsData[index];
+  var next = window.jointsData[index + 1];
+  if (!currentData || !next) return [];
+  return getExceededJoints(currentData.angles, next.angles, next.time - currentData.time);
+};
+
+// The joints of `currentData` that moved too fast getting here *from the
+// previous* captured pose. Flags this card as the (primary) arrival side of
+// an over-speed transition.
+var getIncomingExceededJoints = function getIncomingExceededJoints(index) {
+  var currentData = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.jointsData[index];
+  var prev = window.jointsData[index - 1];
+  if (!prev || !currentData) return [];
+  return getExceededJoints(prev.angles, currentData.angles, currentData.time - prev.time);
+};
+var getJointAngleMap = function getJointAngleMap() {
+  var robot = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : viewer.robot;
+  return Object.fromEntries(getActuatedJointNames(robot).slice(0, 6).map(function (jointName, index) {
+    var angleInDegrees = robot.joints[jointName].angle * RAD2DEG;
+    var formattedAngle = angleInDegrees.toFixed(1);
+    return ["J".concat(index + 1), formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
+  }));
+};
 
 // State management
 var state = {
@@ -54420,6 +54547,107 @@ var capture = function capture() {
   viewer.renderer.render(viewer.scene, viewer.camera);
   return viewer.renderer.domElement.toDataURL();
 };
+
+// Pose card panel: slides off to the right and auto-hides, unless pinned open
+var cardPanelPinned = false;
+var cardPanelHideTimer = null;
+var showCardPanel = function showCardPanel() {
+  clearTimeout(cardPanelHideTimer);
+  elements.cardWrapper.classList.remove('collapsed');
+};
+var scheduleHideCardPanel = function scheduleHideCardPanel() {
+  clearTimeout(cardPanelHideTimer);
+  if (cardPanelPinned) return;
+  cardPanelHideTimer = setTimeout(function () {
+    elements.cardWrapper.classList.add('collapsed');
+  }, 5000);
+};
+
+// Called by any action that adds/changes/removes cards, so the panel pops
+// open to show the result -- then falls back to the normal auto-hide timer
+// (unless the mouse is actually over the panel, which cancels it as usual).
+var revealCardPanel = function revealCardPanel() {
+  showCardPanel();
+  scheduleHideCardPanel();
+};
+window.revealCardPanel = revealCardPanel;
+elements.cardEdgeTrigger.addEventListener('mouseenter', showCardPanel);
+elements.cardEdgeTrigger.addEventListener('mouseleave', scheduleHideCardPanel);
+elements.cardWrapper.addEventListener('mouseenter', showCardPanel);
+elements.cardWrapper.addEventListener('mouseleave', scheduleHideCardPanel);
+elements.cardTab.addEventListener('click', function () {
+  cardPanelPinned = !cardPanelPinned;
+  elements.cardTab.classList.toggle('active', cardPanelPinned);
+  if (cardPanelPinned) {
+    showCardPanel();
+  } else {
+    elements.cardWrapper.classList.add('collapsed');
+  }
+});
+
+// Panel starts open; auto-collapse it after 5s if the mouse never hovers it
+scheduleHideCardPanel();
+
+// Scroll-to-top / scroll-to-bottom hints: reveal the matching arrow when the
+// mouse nears that edge of the card list (only if there's actually room to
+// scroll that way), and jump there on click.
+var SCROLL_HINT_ZONE = 24; // px from the edge that reveals the arrow
+
+// The buttons are DOM siblings of the container (every child of the
+// container is treated as a pose card elsewhere), so they visually overlap
+// its edges without being descendants. That means moving the mouse from the
+// container onto a button fires 'mouseleave' on the container immediately --
+// hide on a short delay instead, and let the button's own hover cancel it.
+var scrollHintHideTimer = null;
+var hideScrollHintsSoon = function hideScrollHintsSoon() {
+  clearTimeout(scrollHintHideTimer);
+  scrollHintHideTimer = setTimeout(function () {
+    elements.cardScrollTopBtn.classList.remove('visible');
+    elements.cardScrollBottomBtn.classList.remove('visible');
+  }, 200);
+};
+elements.cardContainer.addEventListener('mousemove', function (e) {
+  var rect = elements.cardContainer.getBoundingClientRect();
+  var y = e.clientY - rect.top;
+  var canScrollUp = elements.cardContainer.scrollTop > 0;
+  var canScrollDown = elements.cardContainer.scrollTop < elements.cardContainer.scrollHeight - elements.cardContainer.clientHeight - 1;
+  clearTimeout(scrollHintHideTimer);
+  elements.cardScrollTopBtn.classList.toggle('visible', y <= SCROLL_HINT_ZONE && canScrollUp);
+  elements.cardScrollBottomBtn.classList.toggle('visible', y >= rect.height - SCROLL_HINT_ZONE && canScrollDown);
+});
+elements.cardContainer.addEventListener('mouseleave', hideScrollHintsSoon);
+elements.cardScrollTopBtn.addEventListener('mouseleave', hideScrollHintsSoon);
+elements.cardScrollBottomBtn.addEventListener('mouseleave', hideScrollHintsSoon);
+elements.cardScrollTopBtn.addEventListener('mouseenter', function () {
+  return clearTimeout(scrollHintHideTimer);
+});
+elements.cardScrollBottomBtn.addEventListener('mouseenter', function () {
+  return clearTimeout(scrollHintHideTimer);
+});
+
+// Hand-rolled smooth scroll (rAF-driven) instead of relying on
+// scrollTo({behavior:'smooth'}) / CSS scroll-behavior:smooth, since browser
+// support/behavior for those is inconsistent -- this animates regardless.
+var smoothScrollCardsTo = function smoothScrollCardsTo(targetTop) {
+  var duration = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 300;
+  var el = elements.cardContainer;
+  var startTop = el.scrollTop;
+  var distance = targetTop - startTop;
+  var startTime = performance.now();
+  var _step = function step(now) {
+    var t = Math.min((now - startTime) / duration, 1);
+    var eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    el.scrollTop = startTop + distance * eased;
+    if (t < 1) requestAnimationFrame(_step);
+  };
+  requestAnimationFrame(_step);
+};
+elements.cardScrollTopBtn.addEventListener('click', function () {
+  smoothScrollCardsTo(0);
+});
+elements.cardScrollBottomBtn.addEventListener('click', function () {
+  smoothScrollCardsTo(elements.cardContainer.scrollHeight);
+});
 
 // Event listeners
 elements.isLoop.addEventListener('click', function () {
@@ -54558,8 +54786,10 @@ var updateArmPosition = function updateArmPosition() {
   var currentTime;
   currentTime = (Date.now() - state.startTime) / 1e3;
   console.log(currentTime);
+  var matchedSegment = false;
   for (var i = 0; i < window.jointsData.length - 1; i++) {
     if (currentTime >= window.jointsData[i].time && currentTime < window.jointsData[i + 1].time) {
+      matchedSegment = true;
       highlightCard(elements.cardContainer.childNodes[i], false, i);
       var t1 = window.jointsData[i].time;
       var t2 = window.jointsData[i + 1].time;
@@ -54579,8 +54809,13 @@ var updateArmPosition = function updateArmPosition() {
         var joint_name = _jointName.replace('J', 'joint_');
         viewer.setJointValue(joint_name, interpolatedAngles[_jointName] * DEG2RAD);
       }
+      var exceededJoints = getExceededJoints(a1, a2, t2 - t1);
+      set3DJointWarning(exceededJoints);
       break;
     }
+  }
+  if (!matchedSegment) {
+    clear3DJointWarning();
   }
   if (window.jointsData.length > 0) {
     if (currentTime > window.jointsData[window.jointsData.length - 1].time) {
@@ -54590,6 +54825,7 @@ var updateArmPosition = function updateArmPosition() {
         state.startTime = Date.now() - vidTimeProxy.value * 1e3;
       } else {
         elements.animToggle.classList.toggle('checked');
+        clear3DJointWarning();
         if (!window.isWebcamActive) video.pause();
       }
     }
@@ -54599,6 +54835,10 @@ var _updateLoop = function updateLoop() {
   if (elements.animToggle.classList.contains('checked')) {
     updateArmPosition();
     updateSocketPackage();
+  }
+  if (warnedJoints.length > 0) {
+    viewer.warningMaterial.emissiveIntensity = 0.35 + 0.35 * (Math.sin(performance.now() / 150) * 0.5 + 0.5);
+    viewer.redraw();
   }
   requestAnimationFrame(_updateLoop);
   // viewer.update();
@@ -54681,11 +54921,7 @@ function closeWS() {
 var updateSocketPackage = function updateSocketPackage() {
   if (!wsON || !sendON || !loadComplete) return;
   if (window.jointsData.length !== 0) {
-    var jointAngles = Object.fromEntries(Object.keys(viewer.robot.joints).slice(0, 6).map(function (key, index) {
-      var angle = viewer.robot.joints[key].angle * RAD2DEG;
-      var rounded = angle.toFixed(1);
-      return ["J".concat(index + 1), rounded.endsWith(".0") ? parseInt(angle) : parseFloat(rounded)];
-    }));
+    var jointAngles = getJointAngleMap();
     var wsPack = {
       currentCardIndex: currentCardIndex + 1,
       jointAngles: jointAngles,
@@ -54743,7 +54979,7 @@ document.addEventListener('WebComponentsReady', function () {
   };
   document.querySelector('li[urdf]').dispatchEvent(new Event('click'));
   if (/javascript\/example\/bundle/i.test(window.location)) {
-    viewer.package = '../../../urdf';
+    viewer.package = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '../../../urdf' : 'urdf';
   }
   elements.animToggle.addEventListener('click', function () {
     elements.animToggle.classList.toggle('checked');
@@ -54755,11 +54991,13 @@ document.addEventListener('WebComponentsReady', function () {
       state.startTime = Date.now() - vidTimeProxy.value * 1e3;
       window.linkRobot.classList.remove('checked');
     } else {
+      clear3DJointWarning();
       if (!window.isWebcamActive) video.pause();
     }
   });
   viewer.addEventListener('manipulate-start', function () {
-    return elements.animToggle.classList.remove('checked');
+    elements.animToggle.classList.remove('checked');
+    clear3DJointWarning();
   });
   viewer.addEventListener('urdf-processed', updateArmPosition);
   _updateLoop();
@@ -54771,16 +55009,23 @@ document.addEventListener('WebComponentsReady', function () {
 function updateCardContent(card, data, index) {
   var updateImg = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
   // console.log(data);
+  // Arrived here too fast (from the previous card) -- primary indicator
+  var incomingExceeded = getIncomingExceededJoints(index, data);
+  // About to leave too fast (towards the next card) -- secondary indicator
+  var outgoingExceeded = getOutgoingExceededJoints(index, data);
   card.querySelector('.angles').innerHTML = Object.entries(data.angles).map(function (_ref) {
     var _ref2 = _slicedToArray(_ref, 2),
       joint = _ref2[0],
       angle = _ref2[1];
-    return "<div>".concat(angle == null ? 'NAN' : angle.toFixed(1), "</div>");
+    return "<div class=\"".concat(incomingExceeded.includes(joint) ? 'speed-exceeded-value' : '', "\">").concat(angle == null ? 'NAN' : angle.toFixed(1), "</div>");
   }).join('');
   if (updateImg) card.querySelector('img').src = captureRobotImage(data.angles);
   card.querySelector('.number').textContent = index + 1;
   card.querySelector('#group-card').textContent = data.group;
   card.querySelector('input').value = data.time;
+  card.classList.toggle('speed-exceeded', incomingExceeded.length > 0);
+  card.classList.toggle('speed-exceeded-soft', outgoingExceeded.length > 0);
+  card.querySelector('.speed-connector').textContent = incomingExceeded.join(', ');
 }
 var captureRobotImage = function captureRobotImage(angles) {
   Object.entries(angles).forEach(function (_ref3) {
@@ -54844,7 +55089,9 @@ function swapCardsWithAnimation(oldIndex, newIndex) {
 
   // If the card position hasn't changed, no animation is needed
   if (oldIndex === newIndex) {
-    updateCardContent(card, window.jointsData[oldIndex], oldIndex, false);
+    // Still refresh every card: this card's own data changed, which can
+    // shift the speed-exceeded status of its neighbor too.
+    updateAllCardContents();
     return;
   }
 
@@ -54892,7 +55139,7 @@ var addFrameCard = function addFrameCard(index) {
   var cardData = window.jointsData[index];
   var card = document.createElement('div');
   card.className = 'ui-element';
-  card.innerHTML = "\n        <div class=\"angles\"></div>\n        <div class=\"icon\">\n            <img alt=\"Icon\">\n        </div>\n        <div class=\"duration\">\n            <div class=\"number\"></div>\n            <div id=\"group-card\"></div>\n            <input value=\"\">\n            <button class=\"duration-btn\">s</button>\n        </div>\n        <button class=\"close\">X</button>\n    ";
+  card.innerHTML = "\n        <div class=\"speed-connector\"></div>\n        <div class=\"angles\"></div>\n        <div class=\"icon\">\n            <img alt=\"Icon\">\n        </div>\n        <div class=\"duration\">\n            <div class=\"number\"></div>\n            <div id=\"group-card\"></div>\n            <input value=\"\">\n            <button class=\"duration-btn\">s</button>\n        </div>\n        <button class=\"close\">X</button>\n        <div class=\"speed-tooltip\">Over Speed</div>\n    ";
   updateCardContent(card, cardData, index);
   card.querySelector('.close').addEventListener('click', function (event) {
     event.stopPropagation();
@@ -54905,6 +55152,8 @@ var addFrameCard = function addFrameCard(index) {
     var marker = elements.progressContainer.querySelectorAll('.progress-marker');
     elements.progressContainer.removeChild(marker[currentIndex]);
     updateCardNumbers();
+    updateAllCardContents();
+    revealCardPanel();
     // console.log(window.jointsData);
   });
   card.querySelector('input').addEventListener('click', function (event) {
@@ -54942,7 +55191,11 @@ var addFrameCard = function addFrameCard(index) {
   updateCardNumbers();
   highlightCard(card, false);
   updateMarkers();
+  // Re-check every card: inserting this one can change the speed-exceeded
+  // status of the card right before it.
+  updateAllCardContents();
   saveLocalData();
+  revealCardPanel();
   return card;
 };
 var findInsertIndex = function findInsertIndex(time) {
@@ -54987,13 +55240,10 @@ var highlightCard = function highlightCard(card) {
   currentCardIndex = index;
 };
 elements.copyBtn.addEventListener('click', function () {
-  var jointAngles = Object.fromEntries(Object.keys(viewer.robot.joints).slice(0, 6).map(function (key, index) {
-    var angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
-    var formattedAngle = angleInDegrees.toFixed(1);
-    return ["J".concat(index + 1), formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
-  }));
+  var jointAngles = getJointAngleMap();
+  var copiedTime = Number.isFinite(vidTimeProxy.value) ? Math.round(vidTimeProxy.value * 100) / 100 : 0;
   var newCardData = {
-    time: Math.round(vidTimeProxy.value * 100) / 100,
+    time: copiedTime,
     group: window.groupNameSelected,
     angles: jointAngles
   };
@@ -55013,11 +55263,7 @@ elements.copyBtn.addEventListener('click', function () {
   addFrameCard(i);
 });
 elements.waitBtn.addEventListener('click', function () {
-  var jointAngles = Object.fromEntries(Object.keys(viewer.robot.joints).slice(0, 6).map(function (key, index) {
-    var angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
-    var formattedAngle = angleInDegrees.toFixed(1);
-    return ["J".concat(index + 1), formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
-  }));
+  var jointAngles = getJointAngleMap();
   var newCardData = {
     time: Math.round(vidTimeProxy.value * 100) / 100,
     group: "wait",
@@ -55040,16 +55286,13 @@ elements.waitBtn.addEventListener('click', function () {
 });
 elements.refreshBtn.addEventListener('click', function () {
   refreshCard();
+  revealCardPanel();
 });
 function refreshCard() {
   updateCardNumbers();
   var card = elements.cardContainer.querySelector('.highlighted');
   var index = Array.from(card.parentNode.children).indexOf(card);
-  var jointAngles = Object.fromEntries(Object.keys(viewer.robot.joints).slice(0, 6).map(function (key, index) {
-    var angleInDegrees = viewer.robot.joints[key].angle * RAD2DEG;
-    var formattedAngle = angleInDegrees.toFixed(1);
-    return ["J".concat(index + 1), formattedAngle.endsWith('.0') ? parseInt(angleInDegrees) : parseFloat(formattedAngle)];
-  }));
+  var jointAngles = getJointAngleMap();
   var time = card.querySelector('input').value;
   var group = card.querySelector('#group-card').textContent;
   updateCardContent(card, {
@@ -55058,8 +55301,14 @@ function refreshCard() {
     group: group
   }, index);
   window.jointsData[index].angles = jointAngles;
+  // The card before this one may now have a different speed-exceeded status
+  updateAllCardContents();
 }
 elements.refreshAllBtn.addEventListener('click', function () {
+  if (!confirm('This will re-capture the current pose into every card, overwriting their existing angles. Continue?')) {
+    return;
+  }
+  revealCardPanel();
   // console.log(elements.cardContainer.childNodes);
   elements.simLoading.classList.remove('hidden');
   setTimeout(function () {
@@ -55088,6 +55337,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var newIndex = evt.newIndex;
       var item = window.jointsData.splice(oldIndex, 1)[0];
       window.jointsData.splice(newIndex, 0, item);
+      updateCardNumbers();
+      updateAllCardContents();
 
       // console.log(window.jointsData);
     }
@@ -55095,7 +55346,11 @@ document.addEventListener('DOMContentLoaded', function () {
   loadComplete = true;
 });
 elements.clearBtn.addEventListener('click', function () {
+  if (!confirm('Are you sure you want to clear all captured poses? This cannot be undone.')) {
+    return;
+  }
   clearALLCards();
+  revealCardPanel();
 });
 window.clearALLCards = function () {
   elements.cardContainer.innerHTML = "";
@@ -55352,6 +55607,7 @@ function handleDeleteCard() {
     var marker = elements.progressContainer.querySelectorAll('.progress-marker');
     elements.progressContainer.removeChild(marker[index]);
     updateCardNumbers();
+    updateAllCardContents();
   }
 }
 function handleGoToLastCard() {
@@ -55414,6 +55670,7 @@ function handleToggleAnimation() {
     video.play();
     window.linkRobot.classList.remove('checked');
   } else {
+    clear3DJointWarning();
     video.pause();
   }
 }

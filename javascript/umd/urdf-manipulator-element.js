@@ -390,29 +390,39 @@
                     emissiveIntensity: 0.25,
                 });
 
+            // The material used to flag a joint moving faster than its speed limit
+            this.warningMaterial =
+                new THREE__namespace.MeshPhongMaterial({
+                    shininess: 10,
+                    color: 0xff2222,
+                    emissive: 0xff2222,
+                    emissiveIntensity: 0.6,
+                });
+
             const isJoint = j => {
 
                 return j.isURDFJoint && j.jointType !== 'fixed';
 
             };
 
-            // Highlight the link geometry under a joint
-            const highlightLinkGeometry = (m, revert) => {
+            // Apply (or clear, when material is null) a material override on the
+            // link geometry under a joint
+            const setLinkGeometryMaterial = (m, material) => {
 
                 const traverse = c => {
 
-                    // Set or revert the highlight color
+                    // Set or revert the material override
                     if (c.type === 'Mesh') {
 
-                        if (revert) {
+                        if (material) {
+
+                            if (!('__origMaterial' in c)) c.__origMaterial = c.material;
+                            c.material = material;
+
+                        } else if ('__origMaterial' in c) {
 
                             c.material = c.__origMaterial;
                             delete c.__origMaterial;
-
-                        } else {
-
-                            c.__origMaterial = c.material;
-                            c.material = this.highlightMaterial;
 
                         }
 
@@ -438,6 +448,24 @@
                 };
 
                 traverse(m);
+
+            };
+
+            // Highlight the link geometry under a joint
+            const highlightLinkGeometry = (m, revert) => {
+
+                setLinkGeometryMaterial(m, revert ? null : this.highlightMaterial);
+
+            };
+
+            // Flag or clear the speed-limit warning on a named joint
+            this.setJointWarning = (jointName, isWarning) => {
+
+                const joint = this.robot && this.robot.joints[jointName];
+                if (!joint) return;
+
+                setLinkGeometryMaterial(joint, isWarning ? this.warningMaterial : null);
+                this.redraw();
 
             };
 

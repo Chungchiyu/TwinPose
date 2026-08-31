@@ -146,7 +146,7 @@
             this.jointValue = null;
             this.jointType = 'fixed';
             this.axis = new THREE.Vector3(1, 0, 0);
-            this.limit = { lower: 0, upper: 0 };
+            this.limit = { lower: 0, upper: 0, velocity: Infinity };
             this.ignoreLimits = false;
 
             this.origPosition = null;
@@ -165,6 +165,7 @@
             this.axis = source.axis.clone();
             this.limit.lower = source.limit.lower;
             this.limit.upper = source.limit.upper;
+            this.limit.velocity = source.limit.velocity;
             this.ignoreLimits = false;
 
             this.jointValue = [...source.jointValue];
@@ -850,6 +851,11 @@
 
                         obj.limit.lower = parseFloat(n.getAttribute('lower') || obj.limit.lower);
                         obj.limit.upper = parseFloat(n.getAttribute('upper') || obj.limit.upper);
+                        if (n.getAttribute('velocity') != null) {
+
+                            obj.limit.velocity = parseFloat(n.getAttribute('velocity'));
+
+                        }
 
                     }
                 });
