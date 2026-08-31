@@ -55209,7 +55209,11 @@ var updateCardNumbers = function updateCardNumbers() {
       card.querySelector('.number').textContent = index + 1;
     }
   });
+  elements.cardTab.classList.toggle('hidden', elements.cardContainer.children.length === 0);
 };
+
+// Set the tab's correct initial state (hidden until there's at least one card)
+updateCardNumbers();
 var highlightCard = function highlightCard(card) {
   var updateVidTime = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
   var index = Array.from(card.parentNode.children).indexOf(card);
@@ -55362,6 +55366,7 @@ window.clearALLCards = function () {
   window.selectGroup(0);
   window.groups.splice(1, window.groups.length - 1);
   window.updateGroups();
+  updateCardNumbers();
 };
 elements.homeBtn.addEventListener('click', function () {
   var joint = new Array(6).fill(0);
