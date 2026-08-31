@@ -364,6 +364,11 @@ class URDFLoader {
 
                     obj.limit.lower = parseFloat(n.getAttribute('lower') || obj.limit.lower);
                     obj.limit.upper = parseFloat(n.getAttribute('upper') || obj.limit.upper);
+                    if (n.getAttribute('velocity') != null) {
+
+                        obj.limit.velocity = parseFloat(n.getAttribute('velocity'));
+
+                    }
 
                 }
             });
