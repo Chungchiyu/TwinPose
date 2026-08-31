@@ -310,6 +310,80 @@ input:focus {
   background-color: rgba(255, 255, 255, 0.551);
 }
 
+@keyframes speed-blink {
+    0%, 100% { border-color: white; box-shadow: none; }
+    50% { border-color: #ff3b3b; box-shadow: 0 0 10px 2px rgba(255, 59, 59, 0.8); }
+}
+
+@keyframes speed-blink-soft {
+    0%, 100% { border-color: white; box-shadow: none; }
+    50% { border-color: #e0397e; box-shadow: 0 0 8px 2px rgba(224, 57, 126, 0.75); }
+}
+
+/* Arrived here too fast (from the previous card) -- primary warning */
+.speed-exceeded {
+    animation: speed-blink 0.6s ease-in-out infinite;
+}
+
+/* About to leave too fast (towards the next card) -- secondary warning */
+.speed-exceeded-soft {
+    animation: speed-blink-soft 0.6s ease-in-out infinite;
+}
+
+/* Both apply at once: the primary (arrival) warning takes visual priority */
+.speed-exceeded.speed-exceeded-soft {
+    animation: speed-blink 0.6s ease-in-out infinite;
+}
+
+/* Small badge bridging the gap between two cards, naming the over-speed joint(s) */
+.speed-connector {
+    display: none;
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 59, 59, 0.85);
+    color: white;
+    font-size: 0.65em;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: 0 0 6px rgba(255, 59, 59, 0.6);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.ui-element.speed-exceeded .speed-connector {
+    display: block;
+}
+
+/* "Over Speed" label shown while hovering an over-speed card */
+.speed-tooltip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.75);
+    color: #ff6b6b;
+    font-size: 0.8em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 4px 10px;
+    border-radius: 5px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 4;
+}
+
+.ui-element.speed-exceeded:hover .speed-tooltip,
+.ui-element.speed-exceeded-soft:hover .speed-tooltip {
+    opacity: 1;
+}
+
 #poseCard-container {
     position: fixed;
     top: 20px;
@@ -346,6 +420,11 @@ input:focus {
     top: 10px;
     left: 8px;
     font-size: 0.8em;
+}
+
+.angles .speed-exceeded-value {
+    color: #ff3b3b;
+    font-weight: bold;
 }
 
 .icon img {

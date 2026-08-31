@@ -48,6 +48,8 @@ const elements = {
 // Constants
 const DEG2RAD = Math.PI / 180;
 const RAD2DEG = 1 / DEG2RAD;
+// Fallback speed limit (deg/s) used when a joint's URDF has no <limit velocity="..."/>
+const DEFAULT_SPEED_LIMIT_DEG = 180;
 
 const getActuatedJointNames = (robot = viewer.robot) => {
     if (!robot?.joints) return [];
@@ -68,6 +70,64 @@ const getActuatedJointNames = (robot = viewer.robot) => {
             return 0;
         })
         .map(joint => joint.name);
+};
+
+// Speed limit for a joint in deg/s, taken from its URDF <limit velocity="..."/>
+// (falls back to DEFAULT_SPEED_LIMIT_DEG when the URDF doesn't define one)
+const getJointSpeedLimitDeg = (joint_name) => {
+    const joint = viewer.robot?.joints?.[joint_name];
+    const velocityRad = joint?.limit?.velocity;
+    return Number.isFinite(velocityRad) ? velocityRad * RAD2DEG : DEFAULT_SPEED_LIMIT_DEG;
+};
+
+// Returns the 'J1'..'J6' keys whose angular speed between two angle maps
+// (in degrees, `dt` seconds apart) exceeds that joint's speed limit
+const getExceededJoints = (anglesA, anglesB, dt) => {
+    if (!dt) return [];
+    return Object.keys(anglesA).filter(jointName => {
+        if (!(jointName in anglesB)) return false;
+        const speed = Math.abs(anglesB[jointName] - anglesA[jointName]) / dt;
+        return speed > getJointSpeedLimitDeg(jointName.replace('J', 'joint_'));
+    });
+};
+
+// Tracks which joints are currently flagged red on the 3D model (playback-only)
+let warnedJoints = [];
+
+const set3DJointWarning = (jointNames) => {
+    if (jointNames.join(',') === warnedJoints.join(',')) return;
+
+    warnedJoints.forEach(jointName => {
+        if (!jointNames.includes(jointName)) {
+            viewer.setJointWarning(jointName.replace('J', 'joint_'), false);
+        }
+    });
+    jointNames.forEach(jointName => viewer.setJointWarning(jointName.replace('J', 'joint_'), true));
+    warnedJoints = jointNames;
+};
+
+const clear3DJointWarning = () => set3DJointWarning([]);
+
+// Both are computed straight from the data (not from playback position), so
+// they show up as soon as the transition is known -- on card creation, edit
+// or reorder.
+
+// The joints of `currentData` that move too fast on the way to the *next*
+// captured pose. Flags this card as the (softer) departure side of an
+// over-speed transition.
+const getOutgoingExceededJoints = (index, currentData = window.jointsData[index]) => {
+    const next = window.jointsData[index + 1];
+    if (!currentData || !next) return [];
+    return getExceededJoints(currentData.angles, next.angles, next.time - currentData.time);
+};
+
+// The joints of `currentData` that moved too fast getting here *from the
+// previous* captured pose. Flags this card as the (primary) arrival side of
+// an over-speed transition.
+const getIncomingExceededJoints = (index, currentData = window.jointsData[index]) => {
+    const prev = window.jointsData[index - 1];
+    if (!prev || !currentData) return [];
+    return getExceededJoints(prev.angles, currentData.angles, currentData.time - prev.time);
 };
 
 const getJointAngleMap = (robot = viewer.robot) => Object.fromEntries(
@@ -258,8 +318,11 @@ const updateArmPosition = () => {
 
     console.log(currentTime);
 
+    let matchedSegment = false;
+
     for (let i = 0; i < window.jointsData.length - 1; i++) {
         if (currentTime >= window.jointsData[i].time && currentTime < window.jointsData[i + 1].time) {
+            matchedSegment = true;
             highlightCard(elements.cardContainer.childNodes[i], false, i);
             const t1 = window.jointsData[i].time;
             const t2 = window.jointsData[i + 1].time;
@@ -283,8 +346,15 @@ const updateArmPosition = () => {
                 viewer.setJointValue(joint_name, interpolatedAngles[jointName] * DEG2RAD);
             }
 
+            const exceededJoints = getExceededJoints(a1, a2, t2 - t1);
+            set3DJointWarning(exceededJoints);
+
             break;
         }
+    }
+
+    if (!matchedSegment) {
+        clear3DJointWarning();
     }
 
     if (window.jointsData.length > 0) {
@@ -295,6 +365,7 @@ const updateArmPosition = () => {
                 state.startTime = Date.now() - vidTimeProxy.value * 1e3;
             } else {
                 elements.animToggle.classList.toggle('checked');
+                clear3DJointWarning();
                 if (!window.isWebcamActive)
                     video.pause();
             }
@@ -306,6 +377,10 @@ const updateLoop = () => {
     if (elements.animToggle.classList.contains('checked')) {
         updateArmPosition();
         updateSocketPackage();
+    }
+    if (warnedJoints.length > 0) {
+        viewer.warningMaterial.emissiveIntensity = 0.35 + 0.35 * (Math.sin(performance.now() / 150) * 0.5 + 0.5);
+        viewer.redraw();
     }
     requestAnimationFrame(updateLoop);
     // viewer.update();
@@ -487,12 +562,16 @@ document.addEventListener('WebComponentsReady', () => {
             state.startTime = Date.now() - vidTimeProxy.value * 1e3;
             window.linkRobot.classList.remove('checked');
         } else {
+            clear3DJointWarning();
             if (!window.isWebcamActive)
                 video.pause();
         }
     });
 
-    viewer.addEventListener('manipulate-start', () => elements.animToggle.classList.remove('checked'));
+    viewer.addEventListener('manipulate-start', () => {
+        elements.animToggle.classList.remove('checked');
+        clear3DJointWarning();
+    });
     viewer.addEventListener('urdf-processed', updateArmPosition);
     updateLoop();
     viewer.camera.position.set(0, 1, -2.5);
@@ -502,15 +581,24 @@ document.addEventListener('WebComponentsReady', () => {
 // Update card content function
 function updateCardContent(card, data, index, updateImg = true) {
     // console.log(data);
+    // Arrived here too fast (from the previous card) -- primary indicator
+    const incomingExceeded = getIncomingExceededJoints(index, data);
+    // About to leave too fast (towards the next card) -- secondary indicator
+    const outgoingExceeded = getOutgoingExceededJoints(index, data);
+
     card.querySelector('.angles').innerHTML =
         Object.entries(data.angles)
-            .map(([joint, angle]) => `<div>${angle == null ? 'NAN' : angle.toFixed(1)}</div>`)
+            .map(([joint, angle]) => `<div class="${incomingExceeded.includes(joint) ? 'speed-exceeded-value' : ''}">${angle == null ? 'NAN' : angle.toFixed(1)}</div>`)
             .join('');
     if (updateImg)
         card.querySelector('img').src = captureRobotImage(data.angles);
     card.querySelector('.number').textContent = index + 1;
     card.querySelector('#group-card').textContent = data.group;
     card.querySelector('input').value = data.time;
+
+    card.classList.toggle('speed-exceeded', incomingExceeded.length > 0);
+    card.classList.toggle('speed-exceeded-soft', outgoingExceeded.length > 0);
+    card.querySelector('.speed-connector').textContent = incomingExceeded.join(', ');
 }
 
 const captureRobotImage = (angles) => {
@@ -571,7 +659,9 @@ function swapCardsWithAnimation(oldIndex, newIndex) {
 
     // If the card position hasn't changed, no animation is needed
     if (oldIndex === newIndex) {
-        updateCardContent(card, window.jointsData[oldIndex], oldIndex, false);
+        // Still refresh every card: this card's own data changed, which can
+        // shift the speed-exceeded status of its neighbor too.
+        updateAllCardContents();
         return;
     }
 
@@ -622,6 +712,7 @@ const addFrameCard = (index) => {
     const card = document.createElement('div');
     card.className = 'ui-element';
     card.innerHTML = `
+        <div class="speed-connector"></div>
         <div class="angles"></div>
         <div class="icon">
             <img alt="Icon">
@@ -633,6 +724,7 @@ const addFrameCard = (index) => {
             <button class="duration-btn">s</button>
         </div>
         <button class="close">X</button>
+        <div class="speed-tooltip">Over Speed</div>
     `;
 
     updateCardContent(card, cardData, index);
@@ -652,6 +744,7 @@ const addFrameCard = (index) => {
         elements.progressContainer.removeChild(marker[currentIndex]);
 
         updateCardNumbers();
+        updateAllCardContents();
         // console.log(window.jointsData);
     });
 
@@ -695,6 +788,9 @@ const addFrameCard = (index) => {
     updateCardNumbers();
     highlightCard(card, false);
     updateMarkers();
+    // Re-check every card: inserting this one can change the speed-exceeded
+    // status of the card right before it.
+    updateAllCardContents();
     saveLocalData();
 
     return card;
@@ -807,6 +903,8 @@ function refreshCard() {
     const group = card.querySelector('#group-card').textContent;
     updateCardContent(card, { time: time, angles: jointAngles, group: group }, index);
     window.jointsData[index].angles = jointAngles;
+    // The card before this one may now have a different speed-exceeded status
+    updateAllCardContents();
 }
 
 elements.refreshAllBtn.addEventListener('click', () => {
@@ -839,6 +937,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const newIndex = evt.newIndex;
             const item = window.jointsData.splice(oldIndex, 1)[0];
             window.jointsData.splice(newIndex, 0, item);
+            updateCardNumbers();
+            updateAllCardContents();
 
             // console.log(window.jointsData);
         }
@@ -1121,6 +1221,7 @@ function handleDeleteCard() {
         elements.progressContainer.removeChild(marker[index]);
 
         updateCardNumbers();
+        updateAllCardContents();
     }
 }
 
@@ -1197,6 +1298,7 @@ function handleToggleAnimation() {
         video.play();
         window.linkRobot.classList.remove('checked');
     } else {
+        clear3DJointWarning();
         video.pause();
     }
 }
